@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Project SAARTHI</title>
+  <meta name="description" content="SAARTHI: AI traffic intelligence for the Noida Film City corridor, with a live digital twin comparing fixed timers and adaptive control on identical traffic.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/site.css">
+  <script>
+    try { const t = localStorage.getItem('saarthi-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  </script>
+</head>
+<body>
+
+<!-- ============================================================ NAV -->
+<nav class="nav" id="nav">
+  <div class="nav-in">
+    <a href="#top" class="logo" aria-label="SAARTHI home">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><circle cx="8" cy="8" r="3.2"/><circle cx="24" cy="8" r="3.2"/><circle cx="24" cy="24" r="3.2"/><circle cx="8" cy="24" r="3.2"/><path d="M8 8H24V24H8Z" fill="none" stroke-width="2"/></svg>
+      <span>SAARTHI</span>
+    </a>
+    <div class="nav-links">
+      <a href="#problem">Problem</a>
+      <a href="#approach">Approach</a>
+      <a href="#twin">Live twin</a>
+      <a href="#plan">Plan ahead</a>
+      <a href="#results">Results</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#rollout">Rollout</a>
+    </div>
+    <div class="nav-actions">
+      <button class="icon-btn" id="theme-btn" aria-label="Toggle light / dark theme" title="Toggle theme">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>
+      </button>
+      <a href="#twin" class="btn btn-primary btn-sm">Open the twin</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ============================================================ HERO -->
+<header class="hero" id="top">
+  <div class="hero-glow" aria-hidden="true"></div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
+      <div class="eyebrow"><span class="dot-live"></span>Uneecops · Technical R&amp;D · Project SAARTHI</div>
+      <h1>The corridor that <span class="grad">predicts and prevents</span> its own jams.</h1>
+      <p class="lead">SAARTHI (Smart Adaptive AI for Real-Time Traffic Handling on Indian Roads) turns the cameras and signals Noida already owns into one AI brain for the Film City corridor. This page runs its digital twin live.</p>
+      <div class="hero-cta">
+        <a href="#twin" class="btn btn-primary">Open the live twin <span aria-hidden="true">→</span></a>
+        <a href="#results" class="btn btn-ghost">See the results</a>
+      </div>
+      <div class="hero-proof" id="hero-proof">
+        <div><b id="hp-p95">—</b><span>cut in 95th-percentile trip time</span></div>
+        <div><b id="hp-ev">—</b><span>ambulance delay vs fixed timers</span></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="screen">
+        <div class="screen-bar">
+          <span class="live-pill"><span class="dot-live"></span>LIVE</span>
+          <span class="screen-title">SAARTHI twin · Film City corridor, real map</span>
+          <span class="screen-clock" id="hero-clock">--:--</span>
+        </div>
+        <div class="screen-body"><canvas id="cv-hero" aria-label="Live SAARTHI digital twin"></canvas></div>
+        <div class="screen-foot">
+          <span><i class="lg g"></i>moving</span><span><i class="lg a"></i>slow</span><span><i class="lg r"></i>stopped</span>
+          <span class="sf-stat" id="hero-stat">—</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="wrap">
+    <div class="stat-strip">
+      <div><b>15 min</b><span>the drive the corridor is built for</span></div>
+      <div><b>45–60 min</b><span>what commuters endure at peak</span></div>
+      <div><b>1.5 lakh+</b><span>vehicles a day on the DND–Film City link</span></div>
+      <div><b>2–3 km</b><span>evening jam where the loop narrows</span></div>
+    </div>
+  </div>
+</header>
+
+<!-- ============================================================ PROBLEM -->
+<section class="section" id="problem">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">01 · The problem</div>
+      <h2>A 15-minute stretch that steals an hour, every day.</h2>
+      <p class="lead">The real damage comes from unpredictability and gridlock rather than raw volume. Five things pile up at once, and fixed timers can't break the cascade.</p>
+    </div>
+    <div class="cards five">
+      <article class="card reveal">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M4 4l8 8M20 4l-8 8M12 12v8"/></svg>
+        <h3>Merging flows</h3>
+        <p>Flyover, ramp, office and mall traffic all converge on one corridor.</p>
+      </article>
+      <article class="card reveal">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M3 12h6M15 12h6M12 3v6M12 15v6"/></svg>
+        <h3>Single-point bottlenecks</h3>
+        <p>One blocked junction or narrow road backs up the whole loop.</p>
+      </article>
+      <article class="card reveal">
+        <svg class="ico" viewBox="0 0 24 24"><rect x="4" y="8" width="12" height="7" rx="2"/><circle cx="7" cy="17" r="1.6"/><circle cx="13" cy="17" r="1.6"/><path d="M19 5v14"/></svg>
+        <h3>Kerbside blockage</h3>
+        <p>Illegal parking, cabs and event vehicles eat the capacity.</p>
+      </article>
+      <article class="card reveal">
+        <svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/></svg>
+        <h3>Fixed signal timing</h3>
+        <p>Can't adapt to tidal peaks or a sudden incident. Each signal runs its own clock.</p>
+      </article>
+      <article class="card reveal">
+        <svg class="ico" viewBox="0 0 24 24"><path d="M3 20h18M6 20V10M10 20V6M14 20V9M18 20V4"/></svg>
+        <h3>Peak concentration</h3>
+        <p>Offices, studios, malls and metro all peak in the same window.</p>
+      </article>
+    </div>
+    <div class="callout reveal">
+      <div class="callout-k">The insight</div>
+      <p>Noida already owns the hardware: the <b>ITMS command centre in Sector 94</b>, <b>~82 CCTV feeds</b>, <b>~40 adaptive junctions</b> and <b>ANPR</b>. Today it mostly watches and fines. SAARTHI turns the same cameras into a brain, with <b>no rip-and-replace</b>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ APPROACH -->
+<section class="section alt" id="approach">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">02 · The approach</div>
+      <h2>Treat the corridor as one graph, not a string of signals.</h2>
+      <p class="lead">Junctions become nodes, roads become edges, and congestion becomes a signal flowing across the graph. That lets one model see a queue forming two junctions away and act before it arrives.</p>
+    </div>
+    <div class="graph-grid">
+      <figure class="graph-card reveal">
+        <svg id="graph-svg" viewBox="0 0 1000 640" role="img" aria-label="Live graph view of the corridor"></svg>
+        <figcaption>Live graph of the real Film City corridor road network from OpenStreetMap, running the same simulation as the twin above. Edge colour shows road occupancy and node size shows the queue at each intersection.</figcaption>
+      </figure>
+      <div class="graph-explain reveal">
+        <div class="gx">
+          <div class="gx-k">Nodes</div>
+          <h3>Junctions</h3>
+          <p>Every real intersection on the corridor. Each node carries its live queue in PCU, its current signal phase and its spillback risk.</p>
+        </div>
+        <div class="gx">
+          <div class="gx-k">Edges</div>
+          <h3>Roads</h3>
+          <p>Each edge carries occupancy, mean speed and the platoons travelling along it toward the next node.</p>
+        </div>
+        <div class="gx">
+          <div class="gx-k">Model</div>
+          <h3>Spatio-temporal GNN</h3>
+          <p>Forecasts where the next jam forms, 15–60 min ahead. The control brain then coordinates every node against one shared corridor objective.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="loop reveal" id="loop">
+      <div class="loop-head">
+        <h3>The closed loop</h3>
+        <p>Sense → Predict → Decide &amp; act → Enforce → Shape demand. Every stage runs in the twin.</p>
+      </div>
+      <div class="loop-tabs" role="tablist"></div>
+      <div class="loop-panel" role="tabpanel"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ LIVE TWIN -->
+<section class="section" id="twin">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">03 · The live twin</div>
+      <h2>Same traffic. Two control systems. Watch them diverge.</h2>
+      <p class="lead">Both twins get identical arrivals, with the same vehicles at the same seconds. Only the control system differs. Inject an incident and it hits both at the same instant, and the stopwatch times how long each takes to recover. Switch the area to the real Film City corridor, Connaught Place or Sector 62 to run on the actual road network pulled from OpenStreetMap: every junction, U-turn, slip road and flyover.</p>
+    </div>
+  </div>
+  <div class="wrap wide">
+    <div class="lab">
+      <div class="bar" aria-label="Simulation controls">
+        <div class="group">
+          <label class="lbl" for="sel-area">Area</label>
+          <select id="sel-area"></select>
+        </div>
+        <div class="group">
+          <button id="btn-play" class="btn btn-primary btn-sm" aria-pressed="true">Pause</button>
+          <button id="btn-ff" class="btn btn-sm" title="Fast-forward 15 simulated minutes">+15 min</button>
+          <button id="btn-reset" class="btn btn-sm" title="Restart with new random traffic">Restart</button>
+        </div>
+        <div class="group">
+          <span class="lbl">Speed</span>
+          <div class="seg" id="seg-speed"><button data-v="1">1×</button><button data-v="5" class="on">5×</button><button data-v="15">15×</button><button data-v="60">60×</button></div>
+        </div>
+        <div class="group">
+          <label class="lbl" for="sel-start">Start</label>
+          <select id="sel-start">
+            <option value="8.5" selected>08:30 · morning peak</option>
+            <option value="13">13:00 · midday</option>
+            <option value="18">18:00 · evening peak</option>
+            <option value="22">22:00 · night</option>
+          </select>
+        </div>
+        <div class="group grow">
+          <label class="lbl" for="rng-demand">Demand</label>
+          <input type="range" id="rng-demand" min="0.6" max="1.4" step="0.05" value="1">
+          <output id="out-demand">100%</output>
+        </div>
+        <div class="group">
+          <span class="lbl">View</span>
+          <div class="seg" id="seg-view"><button data-v="split" class="on">Split</button><button data-v="fixed">Fixed</button><button data-v="smart">SAARTHI</button></div>
+        </div>
+        <div class="group">
+          <span class="lbl">Colour</span>
+          <div class="seg" id="seg-color"><button data-v="speed" class="on">Speed</button><button data-v="type">Type</button></div>
+        </div>
+        <div class="clock-mini"><span id="clock">--:--:--</span><small id="clock-sub">simulated</small></div>
+      </div>
+      <div class="net-info" id="net-info"></div>
+
+      <div class="scen-banner" id="scen-banner" hidden>
+        <span class="sb-k">What-if loaded</span>
+        <span id="scen-label"></span>
+        <span class="sb-sub">Fixed twin runs today's approach · SAARTHI twin runs the recommended plan</span>
+        <button class="btn btn-sm" id="scen-clear">Back to a normal day</button>
+      </div>
+
+      <div class="scen">
+        <div class="panel">
+          <h4>Inject an event <span class="hint">hits both twins at once</span></h4>
+          <div class="scen-btns">
+            <button class="btn ev" id="ev-amb"><span class="ev-ico">🚑</span>Ambulance<small>DND → Greater Noida</small></button>
+            <button class="btn ev" id="ev-park"><span class="ev-ico">⛔</span>Illegal parking<small>Loop FC-03→FC-04</small></button>
+            <button class="btn ev" id="ev-surge"><span class="ev-ico">🎬</span>Event surge<small>Sector 18 +60%, 20 min</small></button>
+            <button class="btn ev" id="ev-cam"><span class="ev-ico">📷</span>Camera fault<small>FC-03 for 5 min</small></button>
+          </div>
+        </div>
+        <div class="panel">
+          <h4>SAARTHI layers <span class="hint">switch off to see what each adds</span></h4>
+          <div class="toggles">
+            <label class="tog gc-tog"><input type="checkbox" data-f="greenCorridor" checked><span>Green corridor lane<small>a dedicated lane the city builds on the ambulance route; general traffic never enters it, so nothing has to be cleared when an ambulance comes</small><small class="gc-note" id="gc-note"></small></span></label>
+            <label class="tog"><input type="checkbox" data-f="metering" checked><span>Perimeter metering</span></label>
+            <label class="tog"><input type="checkbox" data-f="vms" checked><span>VMS / navigation diversions</span></label>
+            <label class="tog"><input type="checkbox" data-f="enforcement" checked><span>Vision enforcement</span></label>
+            <label class="tog"><input type="checkbox" data-f="shaping" checked><span>Departure advice (shape demand)</span></label>
+          </div>
+        </div>
+      </div>
+
+      <div class="twins view-split" id="twins">
+        <article class="pane" id="pane-fixed">
+          <header class="pane-h">
+            <div><span class="swatch fixed"></span><strong>Fixed-timer baseline</strong><span class="pane-sub">Webster-tuned plan, no sensing</span></div>
+            <div class="chips" id="chips-fixed"></div>
+          </header>
+          <div class="cv-wrap"><canvas id="cv-fixed" aria-label="Fixed-timer twin map"></canvas></div>
+        </article>
+        <article class="pane" id="pane-smart">
+          <header class="pane-h">
+            <div><span class="swatch smart"></span><strong>SAARTHI adaptive</strong><span class="pane-sub">sense · predict · act · enforce · shape</span></div>
+            <div class="chips" id="chips-smart"></div>
+          </header>
+          <div class="cv-wrap"><canvas id="cv-smart" aria-label="SAARTHI twin map"></canvas></div>
+        </article>
+      </div>
+      <div class="legend" id="legend"></div>
+
+      <div class="panel flush stopwatch">
+        <table class="sw" aria-label="Event stopwatch: fixed timers vs SAARTHI">
+          <thead><tr><th>Event stopwatch <span class="hint">time from the moment each event hit both twins</span></th><th class="num"><span class="swatch fixed"></span>Fixed</th><th class="num"><span class="swatch smart"></span>SAARTHI</th><th class="num">Time saved</th></tr></thead>
+          <tbody id="sw-body"></tbody>
+        </table>
+      </div>
+
+      <div class="headline" id="headline">Warming up the twin…</div>
+      <div class="kpi-grid">
+        <div class="panel flush">
+          <table class="kpi" aria-label="KPI comparison over the last 15 simulated minutes">
+            <thead><tr><th>Measure <span class="hint">rolling 15 min</span></th><th class="num"><span class="swatch fixed"></span>Fixed</th><th class="num"><span class="swatch smart"></span>SAARTHI</th><th class="num">Change</th></tr></thead>
+            <tbody id="kpi-body"></tbody>
+          </table>
+        </div>
+        <div class="charts">
+          <figure class="chart panel">
+            <figcaption>95th-percentile trip time <span class="hint">minutes</span></figcaption>
+            <div class="chart-legend"><span><i class="fixed"></i>Fixed</span><span><i class="smart"></i>SAARTHI</span></div>
+            <div class="chart-box"><canvas id="ch-p95"></canvas><div class="tip" hidden></div></div>
+          </figure>
+          <figure class="chart panel">
+            <figcaption>Vehicles stopped <span class="hint">in loop + queued upstream</span></figcaption>
+            <div class="chart-legend"><span><i class="fixed"></i>Fixed</span><span><i class="smart"></i>SAARTHI</span></div>
+            <div class="chart-box"><canvas id="ch-queue"></canvas><div class="tip" hidden></div></div>
+          </figure>
+          <figure class="chart panel span2">
+            <figcaption>Predict: corridor demand vs capacity <span class="hint">next 60 min · departure advice fires above 93%</span></figcaption>
+            <div class="chart-box short"><canvas id="ch-forecast"></canvas><div class="tip" hidden></div></div>
+          </figure>
+        </div>
+      </div>
+
+      <div class="bottom">
+        <div class="panel">
+          <h4>Junction inspector</h4>
+          <div class="seg" id="seg-junction"></div>
+          <table class="insp">
+            <thead><tr><th>Approach</th><th class="num">Fixed</th><th class="num">SAARTHI</th></tr></thead>
+            <tbody id="insp-body"></tbody>
+          </table>
+          <div class="edge-h">Edge → centre message (MQTT) for <strong id="edge-name">—</strong></div>
+          <pre class="edge" id="edge-json"></pre>
+        </div>
+        <div class="panel">
+          <h4>Control brain &amp; incident log</h4>
+          <ol class="log" id="log"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ PLAN AHEAD (what-if) -->
+<section class="section alt" id="plan">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">04 · Plan ahead</div>
+      <h2>Know a disruption is coming? Rehearse it in the twin first.</h2>
+      <p class="lead">Enter a protest, a VIP movement or a big event before it happens. The planner simulates today's approach and several SAARTHI plans on identical traffic, then recommends one with a timeline, public diversions and a separate VIP route. It can also add an unplanned crash to check that the plan gets caught and corrected.</p>
+    </div>
+
+    <div class="wi reveal">
+      <div class="panel wi-form">
+        <h4>What's coming</h4>
+        <div class="seg wi-type" id="wi-type" role="group" aria-label="Disruption type">
+          <button data-v="protest" class="on">✊ Protest / rally</button>
+          <button data-v="vip">🚩 VIP movement</button>
+          <button data-v="event">🎟 Big event</button>
+        </div>
+        <p class="wi-blurb" id="wi-blurb"></p>
+        <div class="wi-fields" id="wi-fields"></div>
+        <label class="tog wi-dist"><input type="checkbox" id="wi-dist"><span>Add an unplanned crash during the plan<small>blocks the busiest open road; tests whether SAARTHI catches and corrects it</small></span></label>
+        <button class="btn btn-primary" id="wi-run">Simulate the options <span aria-hidden="true">→</span></button>
+        <div class="bench-run wi-progress" id="wi-progress" hidden>
+          <div class="bench-bar"><div class="bench-fill" id="wi-fill"></div></div>
+          <div class="bench-status" id="wi-status"></div>
+        </div>
+      </div>
+      <figure class="panel wi-map">
+        <svg id="wi-svg" viewBox="0 0 1000 640" role="img" aria-label="Map of the planned disruption"></svg>
+        <figcaption id="wi-cap"></figcaption>
+      </figure>
+    </div>
+
+    <div class="wi-out" id="wi-out" hidden>
+      <div class="wi-reco" id="wi-reco"></div>
+      <div class="panel flush">
+        <table class="wi-opts" aria-label="Every option simulated">
+          <thead id="wi-opts-h"></thead>
+          <tbody id="wi-opts"></tbody>
+        </table>
+      </div>
+      <div class="wi-grid">
+        <figure class="chart panel">
+          <figcaption>Vehicles stopped <span class="hint">in the loop + queued to enter</span></figcaption>
+          <div class="chart-legend" id="wi-legend"></div>
+          <div class="chart-box tall"><canvas id="wi-chart"></canvas><div class="tip" hidden></div></div>
+        </figure>
+        <div class="panel">
+          <h4>Action timeline</h4>
+          <ol class="wi-steps" id="wi-steps"></ol>
+        </div>
+      </div>
+      <div class="panel">
+        <h4 id="wi-routes-h">Routes</h4>
+        <div class="wi-routes" id="wi-routes"></div>
+      </div>
+      <div class="panel wi-dist-out" id="wi-dist-out" hidden>
+        <h4 id="wi-dist-h"></h4>
+        <div class="wi-dist-grid">
+          <div>
+            <ol class="wi-flow" id="wi-flow"></ol>
+            <p class="wi-dist-note" id="wi-dist-note"></p>
+          </div>
+          <figure class="chart">
+            <div class="chart-legend" id="wi-dlegend"></div>
+            <div class="chart-box"><canvas id="wi-dchart"></canvas><div class="tip" hidden></div></div>
+          </figure>
+        </div>
+      </div>
+      <p class="fine">Same caveats as the twin: schematic geometry and assumed demand, so read the ranking and the relative change rather than absolute minutes. Advance-notice reach (80%), VMS compliance (70%) and clearance times (6 min with camera detection, 15 min without) are modelling assumptions. Security needs can override the traffic ranking, especially for VIP movements.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ RESULTS -->
+<section class="section" id="results">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">05 · Results</div>
+      <h2>A full morning peak, replayed in your browser.</h2>
+      <p class="lead">08:00–10:30 on identical traffic, with an ambulance dispatched at 09:10 and illegal parking at 09:30. Nothing here is pre-baked: the numbers below are computed when you open this page.</p>
+    </div>
+    <div class="bench-run reveal" id="bench-run">
+      <div class="bench-bar"><div class="bench-fill" id="bench-fill"></div></div>
+      <div class="bench-status" id="bench-status">Preparing benchmark…</div>
+    </div>
+    <div class="bench-cards" id="bench-cards"></div>
+    <div class="bench-charts reveal">
+      <figure class="chart panel">
+        <figcaption>95th-percentile trip time through the peak <span class="hint">minutes, rolling 15 min</span></figcaption>
+        <div class="chart-legend"><span><i class="fixed"></i>Fixed timers</span><span><i class="smart"></i>SAARTHI</span></div>
+        <div class="chart-box tall"><canvas id="bench-p95"></canvas><div class="tip" hidden></div></div>
+      </figure>
+      <div class="panel flush">
+        <table class="targets" aria-label="Deck targets versus twin results">
+          <thead><tr><th>Deck target (slide 11)</th><th class="num">Twin result</th><th class="num">Status</th></tr></thead>
+          <tbody id="targets-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <p class="fine reveal">Geometry is schematic (1 px = 1 m) and demand is calibrated by assumption, so read the relative change, not absolute minutes. Phase 1 replaces both with Sector 94 ITMS and edge-camera data.</p>
+  </div>
+</section>
+
+<!-- ============================================================ ARCHITECTURE -->
+<section class="section alt" id="architecture">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">06 · Architecture</div>
+      <h2>Six cooperating layers, each independently upgradeable.</h2>
+      <p class="lead">A software and edge-compute layer that rides on cameras and controllers Noida largely already owns.</p>
+    </div>
+    <div class="layers">
+      <div class="layer reveal"><span class="ln">1</span><div><h3>Sensing</h3><p>Reused CCTV/ANPR + new edge cameras, floating-car data, optional radar.</p></div><span class="tag">field</span></div>
+      <div class="layer reveal"><span class="ln">2</span><div><h3>Edge perception</h3><p>YOLOv11 detection + BoT-SORT tracking + PCU density on Jetson Orin. &lt;20 ms per frame, only KB/s of metadata leaves the pole.</p></div><span class="tag on">simulated here</span></div>
+      <div class="layer reveal hl"><span class="ln">3</span><div><h3>Data &amp; digital twin</h3><p>Streaming pipeline, calibrated twin, spatio-temporal forecasting. Every plan is proven here before it touches a real signal.</p></div><span class="tag on">running on this page</span></div>
+      <div class="layer reveal hl"><span class="ln">4</span><div><h3>Control brain</h3><p>Multi-agent RL (QMIX / MAPPO) on a deterministic safety floor. Min/max green, pedestrian clearance, anti-starvation and command-centre override can never be violated.</p></div><span class="tag on">running on this page</span></div>
+      <div class="layer reveal"><span class="ln">5</span><div><h3>Actuation</h3><p>Adaptive signals via NTCIP, emergency green corridor, dynamic lanes / VMS, ramp metering at the DND merge.</p></div><span class="tag on">simulated here</span></div>
+      <div class="layer reveal"><span class="ln">6</span><div><h3>Integration &amp; ops</h3><p>Sector 94 command centre, dashboards, MLOps, alerts to police / 112.</p></div><span class="tag">field</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ ROLLOUT -->
+<section class="section" id="rollout">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">07 · Rollout</div>
+      <h2>Phased by risk, not budget.</h2>
+      <p class="lead">Every phase must pass its gate before the next begins.</p>
+    </div>
+    <ol class="timeline">
+      <li class="reveal done"><span class="ph">0</span><h3>Instrument</h3><p>Edge perception on 1–2 worst junctions.</p><span class="gate">Gate: &gt;90% count accuracy</span></li>
+      <li class="reveal now"><span class="ph">1</span><h3>Twin &amp; shadow</h3><p>Build the twin; RL in shadow mode.</p><span class="gate">Gate: twin matches reality</span><span class="here">Prototype live on this page</span></li>
+      <li class="reveal"><span class="ph">2</span><h3>Single junction live</h3><p>AI control on one junction, fallback armed.</p><span class="gate">Gate: measured gain, zero safety events</span></li>
+      <li class="reveal"><span class="ph">3</span><h3>Corridor coordination</h3><p>All 6–8 junctions, green waves, metering.</p><span class="gate">Gate: corridor KPI targets</span></li>
+      <li class="reveal"><span class="ph">4</span><h3>Harden &amp; document</h3><p>Incidents, dashboards, 24×7 playbooks.</p><span class="gate">Gate: handover-ready runbook</span></li>
+      <li class="reveal"><span class="ph">5</span><h3>Replicate</h3><p>Package "Choke-Point-in-a-Box".</p><span class="gate">Gate: second site stood up</span></li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================================================ EVIDENCE -->
+<section class="section alt" id="evidence">
+  <div class="wrap">
+    <div class="section-head reveal">
+      <div class="eyebrow">08 · Why now</div>
+      <h2>Standing on results already delivered elsewhere.</h2>
+    </div>
+    <div class="panel flush reveal">
+      <table class="evid">
+        <thead><tr><th>System</th><th>Where</th><th>Approach</th><th>Reported result</th></tr></thead>
+        <tbody>
+          <tr><td><b>Surtrac</b> (CMU)</td><td>Pittsburgh</td><td>Decentralised schedule-driven control</td><td>−25% travel time · −40% wait · −20% emissions</td></tr>
+          <tr><td><b>Google Green Light</b></td><td>Bengaluru, Kolkata</td><td>Cloud AI over floating-car data</td><td>up to −30% stops · −10% emissions</td></tr>
+          <tr><td><b>BATCS</b> (C-DAC CoSiCoSt)</td><td>Bengaluru</td><td>Camera-fed adaptive, India-tuned</td><td>−15–33% travel time · +20% throughput</td></tr>
+          <tr><td><b>Multi-agent RL</b></td><td>Sim / pilots</td><td>Deep reinforcement learning</td><td>−34–52% delay vs fixed-time</td></tr>
+          <tr><td><b>Edge YOLO + tracking</b></td><td>Intersections</td><td>YOLOv11 + BoT-SORT on Jetson</td><td>&gt;90% mAP · &lt;20 ms/frame · 8+ cameras</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="cta-final reveal">
+      <h2>From one corridor to a national programme.</h2>
+      <p>Noida Authority &amp; Traffic Police → UPEIDA / UP Smart Cities → MoRTH / MeitY / Smart Cities Mission. A low-risk pilot with a public baseline and independently verifiable KPIs.</p>
+      <a href="#twin" class="btn btn-primary">Try the twin yourself <span aria-hidden="true">→</span></a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="wrap foot-in">
+    <div><b>Project SAARTHI</b> · Prepared by Uneecops · Digital twin prototype v1</div>
+    <div class="fine">Schematic geometry, demand calibrated by assumption. The control brain is a deterministic stand-in for the MARL policy and has the same shape as its safety-floor fallback.</div>
+  </div>
+</footer>
+
+<script src="js/networks/fco.js"></script>
+<script src="js/networks/cp.js"></script>
+<script src="js/networks/s62.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/render.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/lab.js"></script>
+<script src="js/planner.js"></script>
+<script src="js/whatif.js"></script>
+<script src="js/site.js"></script>
+</body>
+</html>
