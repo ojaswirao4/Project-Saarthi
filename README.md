@@ -89,6 +89,7 @@ The baseline is a Webster-tuned fixed-time plan for the design peak hour. It is 
 node tools/calibrate.js [startHour] [hours] [demandMult] [seed]
 node tools/calibrate.js 8 2.5 1 7      # morning peak A/B
 node tools/calibrate.js 8.5 1.75 1 7 cp --events   # Connaught Place, ambulance + illegal parking, event stopwatch
+node tools/capacity.js 1.4 7           # both twins overloaded to 140%: trips/h each can carry
 node tools/whatif.js protest segment=north start=10 duration=1 disturbance
 node tools/whatif.js vip vipRoute=DND-GNO convoys=2 holiday=0.15
 node tools/whatif.js event start=17 duration=1.5 surge=0.8
@@ -103,6 +104,7 @@ node tools/whatif.js event start=17 duration=1.5 surge=0.8
 - The control brain is a deterministic **stand-in** for the MARL policy (QMIX/MAPPO), with the same shape as its safety-floor fallback.
 - **Queues beyond the map edge count like any other queue.** When an entry road fills to the edge, arriving vehicles wait off the map. That time counts as waiting for the first junction, and each time that queue moves again after standing 10 s counts as a fresh stop. Before this, fixed timers, which push about 3 min per trip off the map at the morning peak, looked better on wait and stops than they were.
 - **SAARTHI's results depend on whether the loop is just over or just under capacity.** Before two-wheeler lane sharing, the morning peak sat just over SAARTHI's capacity: cars waited through two short greens and its stops gain was only about −20%. Lane sharing adds about 6% capacity and tips SAARTHI back under, while fixed timers stay overloaded. Across five seeds SAARTHI now cuts stops by about 42% and trip time by about half. Field calibration (saturation flow, two-wheeler share) decides which side of that edge the real corridor is on, so treat the size of the gain with care. Signal-timing alternatives that didn't help, over five seeds: longer or "finish the queue" greens back queues up into the junction behind; holding a green for an approaching platoon jams the loop; choosing the next green to catch a platoon changed nothing measurable.
+- **Throughput: SAARTHI serves demand better, but it doesn't add road capacity.** With both twins fed the same overload (shaping off, trips finished per hour once saturated, three seeds), SAARTHI vs fixed is +5% at 100% demand, +1% at 120%, −3% at 140%, and +11% at 160%, where fixed timers start to gridlock (seeds vary from −3% to +28%). The roads cap throughput, and a well-tuned fixed plan pushes almost as much through when every approach is overloaded. SAARTHI's gain at the real peak comes from giving green where the demand is (the fixed plan starves the tidal DND approach), not from extra capacity. So the deck's +15–20% throughput target isn't supported by the twin. A fairer claim is "+5% more trips served at today's peak, holds flow when fixed timers gridlock". Reproduce with `node tools/capacity.js 1.4 7`.
 - At extreme overload (about 120% evening demand) SAARTHI still wins on 95th-percentile trip time, but average wait and stops are slightly worse than fixed timers. This is worth tuning further in SUMO.
 
 ## Next steps
@@ -125,6 +127,7 @@ js/planner.js       what-if planner: candidate plans, ranking, recommendation (D
 js/whatif.js        Plan ahead section: scenario form, map, results
 js/site.js          hero twin, live graph, closed-loop stepper, benchmark, nav/theme
 tools/calibrate.js  headless A/B runner (any area, optional event stopwatch)
+tools/capacity.js   headless capacity A/B (both twins overloaded, trips/h once saturated)
 tools/osm-import.js OpenStreetMap → twin network builder (raw data cached in tools/osm-cache/)
 tools/whatif.js     headless what-if runner
 ```
