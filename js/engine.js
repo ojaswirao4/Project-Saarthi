@@ -26,7 +26,12 @@
   const FILTER_GAP = 8;         // …when it is within this many metres of it
   const FILTER_DV = 4;          // m/s faster than the traffic alongside that a filtering bike will go
   const FILTER_END_V = 5;       // m/s the traffic ahead must reach before a filtering bike rejoins the lane
-  const KEEP_CLEAR_V = 2;       // m/s: a full exit road whose tail moves faster than this doesn't hold drivers at the line
+  const LOOP_MAX_LINKS = 14;    // one-way loops up to this many roads…
+  const LOOP_MAX_LEN = 1500;    // …and this long (m) work like a roundabout: circulating traffic first,
+                                // joiners wait for space (e.g. both carriageways of Vishwakarma Rd, 1.1 km)
+  const DEADLOCK_T = 240;      // s a vehicle may sit stuck in a junction box on a real map before it is squeezed out
+  const ZIP_V = 3;             // m/s: main-road traffic slower than this takes turns with a side road (zipper merge)
+  const KEEP_CLEAR_V = 2;      // m/s: a full exit road whose tail moves faster than this doesn't hold drivers at the line
   const DETOUR_MAX = 1.5;      // a marshal only waves stuck vehicles onto a way round at most this much longer…
   const DETOUR_SLACK = 60;      // …plus this many seconds at free flow
   const BACKLOG_STALL = 10;  // s the off-map queue must stand still before moving again counts as a fresh stop
@@ -510,7 +515,7 @@
       this.lw = net.laneW || LANE_W;
       this.median = net.median != null ? net.median : MEDIAN;
       const isect = (d, type, r) => Object.assign({ type, r, ins: [], outs: [], box: [], boxPcu: 0, boxBlocked: false, blockedT: 0,
-        inGridlock: false, faultUntil: -1, faultLogged: false, evHold: -1, sig: null, approaches: [], free: [], plan: [], level: 0 }, d);
+        inGridlock: false, faultUntil: -1, faultLogged: false, evHold: -1, sig: null, lastIn: null, approaches: [], free: [], plan: [], level: 0 }, d);
       const external = d => Object.assign({ type: 'X', r: 0, backlog: [], lastRelease: -1e9, stallT: 0, metered: false, meterLogT: -1e9, entry: null, exit: null, demand: 0 }, d);
       if (this.ring) { // the hand-drawn Film City loop
         for (const d of net.junctions) this.nodes[d.id] = isect(d, 'J', JR);
@@ -566,7 +571,7 @@
             for (const O of this.moves[M.id] || []) {
               if (!O.oneway || this.uturns.has(M.id + '|' + O.id)) continue;
               if (O === L) { found = true; break; }
-              if (depth < 7 && len + O.length < 700) stack.push([O, depth + 1, len + O.length]);
+              if (depth < LOOP_MAX_LINKS && len + O.length < LOOP_MAX_LEN) stack.push([O, depth + 1, len + O.length]);
             }
           }
           if (found) { L.circ = true; L.rank += 3; }
@@ -1046,21 +1051,25 @@
         else if (s.state === 'Y' && !jump && dist > veh.v * veh.v / (2 * 3.5) + 1) return true;
       } else if (dist < 20 && this.mustYield(veh, L, j)) return true;
       if (dist < 12 && !this.canAdmit(j, veh)) return true;
-      // Keep-clear: with vision enforcement auto-flagging box-blocking, most drivers wait at the
-      // line rather than enter a junction whose exit road is full.
-      if (dist < 12 && veh.keepsClear && j.sig && this.mode === 'adaptive' && this.features.enforcement) {
-        // A driver holds back only when the road beyond is full and standing still; if its tail is rolling,
-        // there will be room by the time they cross, so they go.
-        const next = this.links[veh.route[veh.ri + 1]];
-        const full = this.bestEntryLane(next, veh, false) < 0 || this.maxEntryRoom(next, veh) < Math.min(veh.len + veh.s0 + 2, next.length - 1);
-        if (full && !this.tailMoving(next, veh)) return true;
-      }
+      // Keep-clear: with vision enforcement auto-flagging box-blocking at a signal, most drivers wait at the
+      // line rather than enter a junction whose exit road is jammed. (Doing the same at give-way junctions
+      // just moves a circular jam from the boxes onto the approach roads, where nothing can break it.)
+      if (dist < 12 && veh.keepsClear && j.sig && this.mode === 'adaptive' && this.features.enforcement
+        && this.exitJammed(this.links[veh.route[veh.ri + 1]], veh)) return true;
       return false;
+    }
+
+    // The road beyond is full and standing still. If its tail is rolling there will be room by the time a
+    // driver crosses, so that doesn't count.
+    exitJammed(next, veh) {
+      const full = this.bestEntryLane(next, veh, false) < 0 || this.maxEntryRoom(next, veh) < Math.min(veh.len + veh.s0 + 2, next.length - 1);
+      return full && !this.tailMoving(next, veh);
     }
 
     // Unsignalised junctions (merges, slip-road ends, roundabout entries, median U-turns): give way to
     // traffic on a higher-ranked road that will reach the junction within ~3 s. A U-turn gives way to
-    // everyone. After 15 s of waiting, drivers nose in anyway (as they do), so nothing starves.
+    // everyone. In crawling traffic drivers take turns (a zipper merge): once a car from the main road has
+    // gone, the side road's next car goes. After 15 s of waiting, drivers nose in anyway, so nothing starves.
     mustYield(veh, L, j) {
       if (veh.isEV) return false;
       const next = this.links[veh.route[veh.ri + 1]];
@@ -1074,7 +1083,7 @@
         if (j.sig && !M.free && j.approaches[j.sig.phase] !== M) continue; // red there: no conflict
         for (const arr of M.lane) {
           const v = arr[0];
-          if (!v) continue;
+          if (!v || (j.lastIn === M && v.v < ZIP_V)) continue; // main road just went and is crawling: my turn
           const d = M.length - v.pos;
           if (d < 40 && v.v > 1 && d / v.v < 3) return true;
           // a queued car on the main road waiting for the same space goes first
@@ -1257,6 +1266,7 @@
       veh.kerbStop = null;
       j.box.push(veh);
       j.boxPcu += veh.pcu;
+      j.lastIn = L; // whose turn it is at a zipper merge
       const cr = { t: this.t, j: j.id, wait: veh.curWait + veh.preWait };
       veh.preWait = 0;
       this.crossings.push(cr);
@@ -1297,6 +1307,10 @@
             }
             b.s = b.len; veh.v = 0; b.stuck += DT;
             this.accountMotion(veh, 0, 0);
+            if (!this.ring && b.stuck >= DEADLOCK_T) { // as SUMO's time-to-teleport: squeeze out, trip pays a penalty
+              this.squeezeOut(veh, j);
+              continue;
+            }
             if (b.stuck > 2) blocked = true;
           }
           keep.push(veh);
@@ -1378,16 +1392,24 @@
     // control system that caused the lock still pays for it in trip time.
     breakDeadlock(j) {
       const stuck = j.box.filter(v => v.box.stuck > 2);
-      for (const veh of stuck) {
-        veh.spawnT -= 240;
-        j.boxPcu -= veh.pcu;
-        if (veh.isEV) this.evs = this.evs.filter(e => e !== veh);
-        this.completeTrip(veh);
-        this.stats.squeezed++;
-      }
+      for (const veh of stuck) this.squeezeOut(veh, j, true);
       j.box = j.box.filter(v => !stuck.includes(v));
       j.deadT = 0; j.blockedT = 0;
       if (stuck.length) this.addLog(`Deadlock at ${j.id} (${j.name}): ${stuck.length} vehicle(s) squeezed out after 4 min`, 'alert');
+    }
+
+    // One vehicle stuck in a box too long leaves the network and finishes its trip with a 4-min penalty.
+    // The caller takes it out of j.box.
+    squeezeOut(veh, j, quiet) {
+      veh.spawnT -= 240;
+      j.boxPcu -= veh.pcu;
+      if (veh.isEV) this.evs = this.evs.filter(e => e !== veh);
+      this.completeTrip(veh);
+      this.stats.squeezed++;
+      if (!quiet && this.t - (j.squeezeLogT || -1e9) > 120) {
+        j.squeezeLogT = this.t;
+        this.addLog(`Deadlock at ${j.id} (${j.name}): a vehicle stuck ${Math.round(DEADLOCK_T / 60)} min squeezed out`, 'alert');
+      }
     }
 
     // A marshal (auto-alerted by vision enforcement, or noticed manually) waves stuck vehicles out.

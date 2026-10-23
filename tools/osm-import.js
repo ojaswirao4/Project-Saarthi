@@ -55,7 +55,12 @@ const AREAS = {
     ambulance: { from: /NH|National Highway|Delhi.?Meerut|Flyover/i, toHospital: /Fortis/i },
     parking: /Vishwakarma/i, surge: /Sector 63|Sector 62/i,
     corridor: { from: /NH|National Highway|Delhi.?Meerut/i, to: /NH|National Highway|Delhi.?Meerut/i },
-    demandScale: 0.72,
+    // Calibrated to Google Maps typical car times, NH-24 Bypass Flyover → Vishwakarma Road (Tue, Oct 2026):
+    // 6 AM 6–8, 9 AM 12–20, 1 PM 8–12 min. Only possible once zipper merging and long one-way loop
+    // detection stopped the area flipping from free flow to gridlock. In a continuous 07:00–10:30 run the
+    // fixed twin's middle half of corridor trips is 8.9–18.3 min at 09:00 and keeps moving at 10:00
+    // (~9900 trips/h finishing); at ×1.5 of this it collapses.
+    demandScale: 0.97,
   },
 };
 
