@@ -26,7 +26,10 @@
   const FILTER_GAP = 8;         // …when it is within this many metres of it
   const FILTER_DV = 4;          // m/s faster than the traffic alongside that a filtering bike will go
   const FILTER_END_V = 5;       // m/s the traffic ahead must reach before a filtering bike rejoins the lane
-  const BACKLOG_STALL = 10;   // s the off-map queue must stand still before moving again counts as a fresh stop
+  const KEEP_CLEAR_V = 2;       // m/s: a full exit road whose tail moves faster than this doesn't hold drivers at the line
+  const DETOUR_MAX = 1.5;      // a marshal only waves stuck vehicles onto a way round at most this much longer…
+  const DETOUR_SLACK = 60;      // …plus this many seconds at free flow
+  const BACKLOG_STALL = 10;  // s the off-map queue must stand still before moving again counts as a fresh stop
   const SAT_FLOW = 1800;        // veh/h/lane assumed by the fixed-time (Webster) plan
   const WARMUP = 600;           // s simulated before the clock is shown
   const CORRIDOR_CAP = 5400;   // veh/h the loop sustains under adaptive control (measured in the twin)
@@ -887,7 +890,7 @@
       const r = this.rngDriver, z = isEV ? 0 : (r() + r() + r()) / 1.5 - 1, redRun = r() < T.redRun;
       const veh = {
         id: this.nextId++, type: typeKey, len: T.len, pcu: T.pcu, a: T.a * (1 + 0.2 * z), b: 2.5, s0: T.s0 * (1 - 0.2 * z), T: T.T * (1 - 0.25 * z),
-        v0, fuelK: T.fuel, alat: T.alat, dawdle: T.dawdle, redRun, kerbStop: null, preWait: 0, half: 0, filter: false, turnFor: null, turnRi: -1, turnV2: Infinity,
+        v0, fuelK: T.fuel, alat: T.alat, dawdle: T.dawdle, redRun, kerbStop: null, preWait: 0, half: 0, filter: false, marshalled: false, turnFor: null, turnRi: -1, turnV2: Infinity,
         route: route.ids, ri: 0, link: null, lane: 0, pos: 0, v: 0, state: 'backlog', origin: o, dest: d,
         spawnT: this.t, stops: 0, moving: true, curWait: 0, fuel: 0, isEV: !!isEV, diverted: false, box: null, lcT: -1e9,
         keepsClear: this.rngBehav() < 0.9, informed, ff: 0,
@@ -1046,8 +1049,11 @@
       // Keep-clear: with vision enforcement auto-flagging box-blocking, most drivers wait at the
       // line rather than enter a junction whose exit road is full.
       if (dist < 12 && veh.keepsClear && j.sig && this.mode === 'adaptive' && this.features.enforcement) {
+        // A driver holds back only when the road beyond is full and standing still; if its tail is rolling,
+        // there will be room by the time they cross, so they go.
         const next = this.links[veh.route[veh.ri + 1]];
-        if (this.bestEntryLane(next, veh, false) < 0 || this.maxEntryRoom(next, veh) < Math.min(veh.len + veh.s0 + 2, next.length - 1)) return true;
+        const full = this.bestEntryLane(next, veh, false) < 0 || this.maxEntryRoom(next, veh) < Math.min(veh.len + veh.s0 + 2, next.length - 1);
+        if (full && !this.tailMoving(next, veh)) return true;
       }
       return false;
     }
@@ -1209,6 +1215,16 @@
       return last ? last.pos - last.len : L.length;
     }
 
+    // Is the back of the traffic on link L, in a lane `veh` may use, moving?
+    tailMoving(L, veh) {
+      for (let i = 0; i < L.lanes; i++) {
+        if (!this.laneOk(L, i, veh)) continue;
+        const arr = L.lane[i], last = arr[arr.length - 1];
+        if (last && last.v > KEEP_CLEAR_V) return true;
+      }
+      return false;
+    }
+
     maxEntryRoom(L, veh) { // lanes `veh` may use (no `veh`: lanes open to general traffic)
       let room = -Infinity;
       for (let i = 0; i < L.lanes; i++) if (this.laneOk(L, i, veh)) room = Math.max(room, this.entryRoom(L, i));
@@ -1350,7 +1366,8 @@
         }
         if (j.inGridlock) this.stats.gridlockSeconds += DT;
         if (j.blockedT >= (auto ? 60 : 180)) {
-          if (!this.clearBox(j, auto) && !this.ring) j.deadT = (j.deadT || 0) + j.blockedT;
+          const held = j.blockedT; // clearBox resets blockedT, so read it first
+          if (!this.clearBox(j, auto) && !this.ring) j.deadT = (j.deadT || 0) + held;
           if (j.deadT >= 240) this.breakDeadlock(j);
         }
       }
@@ -1383,18 +1400,29 @@
         if (this.ring) {
           alt = exits.find(L => L !== veh.box.next && this.bestEntryLane(L, veh, false) >= 0);
           if (alt) tail = [alt.id];
-        } else { // real network: any other road out with room, then the quickest way on to the destination
+        } else { // real network: the road out that gets this driver to their destination quickest now,
+          // as long as the way round isn't much longer than the route they were on
+          const ff = M => M.length / M.vmax, now = M => M.length / Math.max(M.meanSpeed, 1);
+          const orig = veh.route.slice(veh.ri + 1).reduce((s, id) => s + ff(this.links[id]), 0);
+          let best = Infinity;
           for (const L of this.moves[veh.route[veh.ri]] || []) {
             if (L === veh.box.next || L.closed || this.bestEntryLane(L, veh, false) < 0) continue;
-            const p = this.shortest(L.id, veh.dest, M => M.length / Math.max(M.meanSpeed, 1));
-            if (p) { alt = L; tail = p; break; }
+            const p = this.shortest(L.id, veh.dest, now);
+            if (!p) continue;
+            let pf = 0, pc = 0;
+            for (const id of p) { pf += ff(this.links[id]); pc += now(this.links[id]); }
+            if (pf > DETOUR_MAX * orig + DETOUR_SLACK || pc >= best) continue;
+            best = pc; alt = L; tail = p;
           }
         }
         if (!alt) continue;
         veh.route = veh.route.slice(0, veh.ri + 1).concat(tail);
         veh.box.next = alt; veh.box.outLane = 0; veh.box.p2 = lanePoint(alt, 0, 0); veh.box.stuck = 0;
         veh.box.vt = this.turnSpeed(veh, veh.box.from, alt);
-        veh.diverted = true;
+        // On the loop the vehicle leaves by another exit, so its trip no longer compares and is left out
+        // of the KPIs; on a real map it still reaches its own destination and the detour counts in its trip.
+        if (this.ring) veh.diverted = true;
+        else if (!veh.marshalled) { veh.marshalled = true; this.stats.diverted++; }
         n++;
       }
       if (n) this.addLog(`${auto ? 'Vision alert → marshal' : 'Traffic marshal (manual)'} cleared box at ${j.id}; ${n} vehicle(s) diverted`, 'alert');

@@ -43,10 +43,9 @@ const AREAS = {
     parking: /Dadri Main/i, surge: /Agrasen|Sector 18|Atta|DLF/i,
     corridor: { from: /DND/i, to: /Mahamaya|Greater Noida|Expressway/i },
     // Calibrated to Google Maps typical car times, DND Flyway → Lt. Vijyant Thapar Marg (Tue, Oct 2026):
-    // 6 AM 5–7, 9 AM 10–18, 1 PM 7–12 min. Free-flow already matched at 6 AM. In a continuous 07:00–10:30
-    // run the fixed twin's middle half of corridor trips is 8.3–13.3 min at 09:00 (was 0.43: 7.4–9.2) and
-    // 10.0–21.0 at 10:00. The area tips sharply: at 0.56, 9 AM fits better but it gridlocks by 10 AM
-    // (10:00 corridor 12–35 min). Provisional until a 10 AM Google time pins it down.
+    // 6 AM 5–7, 9 AM 10–18, 10 AM 12–20, 1 PM 7–12 min. Free-flow already matched at 6 AM. In a continuous
+    // 07:00–10:30 run the fixed twin's middle half of corridor trips is 8.3–13.3 min at 09:00 (was 0.43:
+    // 7.4–9.2) and 9.5–19.2 at 10:00. The area tips sharply: at 0.56 it gridlocks by 10 AM (12–35 min).
     demandScale: 0.52,
 
   },
