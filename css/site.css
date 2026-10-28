@@ -409,6 +409,9 @@ td .sub2 { display: block; color: var(--muted); font-size: 11.5px; }
 .bcard .vs span { display: inline-flex; align-items: center; }
 .bench-charts { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-top: 16px; align-items: start; }
 .targets td:first-child b { display: block; }
+.realmaps { margin-top: 32px; }
+.realmaps td { white-space: nowrap; }
+.realmaps th .hint { display: block; margin: 2px 0 0; }
 .pill { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
 .pill.met { color: var(--good-text); background: color-mix(in srgb, var(--status-good) 14%, transparent); }
 .pill.close { color: #b77900; background: color-mix(in srgb, var(--status-warn) 18%, transparent); }
