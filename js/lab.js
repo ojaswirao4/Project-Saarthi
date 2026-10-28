@@ -186,6 +186,17 @@
   fire($('#ev-surge'), s => s.triggerSurge(null, 1.6, 20));
   fire($('#ev-cam'), s => s.triggerCameraFault(null, 5));
 
+  // Presenter shortcuts while the twin is on screen: Space pause, F +15 min, A/P/E/C fire an event.
+  const KEYS = { ' ': '#btn-play', f: '#btn-ff', a: '#ev-amb', p: '#ev-park', e: '#ev-surge', c: '#ev-cam' };
+  document.addEventListener('keydown', e => {
+    const tag = document.activeElement.tagName;
+    if (e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|SELECT|TEXTAREA)$/.test(tag) || (e.key === ' ' && tag === 'BUTTON')) return;
+    const sel = KEYS[e.key.toLowerCase()], r = $('#twin').getBoundingClientRect();
+    if (!sel || r.bottom < 0 || r.top > innerHeight) return;
+    e.preventDefault();
+    $(sel).click();
+  });
+
   $$('.toggles input').forEach(inp => inp.addEventListener('change', () => {
     state.features[inp.dataset.f] = inp.checked;
     if (inp.dataset.f === 'greenCorridor') { reset(false); renderLegend(); return; } // the lane is built or not: new twin
