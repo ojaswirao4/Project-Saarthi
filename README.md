@@ -15,7 +15,7 @@ Open `index.html` in Chrome or Edge. No install or server is needed; an internet
 | 05 Results | A full 08:00–10:30 morning peak, with an ambulance at 09:10 and illegal parking at 09:30, **simulated in the browser on page load**, then scored against the deck's slide-11 targets |
 | 06–08 | Architecture (six layers), the phased rollout (Phase 1 "Twin & shadow" marked as live), and evidence from Surtrac, Green Light, BATCS and others |
 
-There's a light/dark toggle in the nav. `index.html?ff=2&amb=1` opens the twin 30 min in with an ambulance just dispatched; add `&park=5` for illegal parking 5 min ago, and `&area=fco`, `&area=cp` or `&area=s62` for a real area. `index.html?whatif=vip` (or `protest` / `event`, add `&crash=1` for the disturbance) runs a what-if on load.
+There's a light/dark toggle in the nav. While the live twin is on screen, presenters can press Space to pause, F to jump 15 min, and A / P / E / C to fire an ambulance, illegal parking, an event surge or a camera fault. `index.html?ff=2&amb=1` opens the twin 30 min in with an ambulance just dispatched; add `&park=5` for illegal parking 5 min ago, and `&area=fco`, `&area=cp` or `&area=s62` for a real area. `index.html?whatif=vip` (or `protest` / `event`, add `&crash=1` for the disturbance) runs a what-if on load.
 
 ## Real areas from OpenStreetMap
 
