@@ -29,6 +29,7 @@
   const LOOP_MAX_LINKS = 14;    // one-way loops up to this many roads…
   const LOOP_MAX_LEN = 1500;    // …and this long (m) work like a roundabout: circulating traffic first,
                                 // joiners wait for space (e.g. both carriageways of Vishwakarma Rd, 1.1 km)
+  const LOOP_XOVER_LEN = 60;    // m: a two-way road this short can be part of such a loop (a crossover)
   const DEADLOCK_T = 240;      // s a vehicle may sit stuck in a junction box on a real map before it is squeezed out
   const ZIP_V = 3;             // m/s: main-road traffic slower than this takes turns with a side road (zipper merge)
   const KEEP_CLEAR_V = 2;      // m/s: a full exit road whose tail moves faster than this doesn't hold drivers at the line
@@ -566,14 +567,17 @@
       // Circulating roads (roundabouts, and short one-way loops that work like one) have priority over
       // traffic entering them, as on any roundabout.
       if (!this.ring) {
+        // A short two-way crossover between two one-way carriageways (e.g. the DME service roads at
+        // Sector 62) still closes the loop.
+        const loopable = L => L.oneway || L.length <= LOOP_XOVER_LEN;
         for (const L of this.linkList) {
-          if (L.kind === 'entry' || L.kind === 'exit' || L.roundabout || !L.oneway) continue;
+          if (L.kind === 'entry' || L.kind === 'exit' || L.roundabout || !loopable(L)) continue;
           const stack = [[L, 0, 0]];
           let found = false;
           while (stack.length && !found) {
             const [M, depth, len] = stack.pop();
             for (const O of this.moves[M.id] || []) {
-              if (!O.oneway || this.uturns.has(M.id + '|' + O.id)) continue;
+              if (!loopable(O) || this.uturns.has(M.id + '|' + O.id)) continue;
               if (O === L) { found = true; break; }
               if (depth < LOOP_MAX_LINKS && len + O.length < LOOP_MAX_LEN) stack.push([O, depth + 1, len + O.length]);
             }
