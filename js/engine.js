@@ -40,6 +40,8 @@
   const CORRIDOR_CAP = 5400;   // veh/h the loop sustains under adaptive control (measured in the twin)
   const DETECT = 90;            // s for edge cameras to spot an unannounced closure
   const VMS_COMPLY = 0.7;       // share of drivers who follow VMS / navigation advice
+  const VMS_ALT_GAIN = 0.8;     // real maps: the alternative route is signed only when it takes under 80% as long…
+  const VMS_ALT_OCC = 0.5;      // …and no road on it is more than half full
 
   // ---------------------------------------------------------------- vehicles (IRC-106 PCUs)
   // alat: lateral acceleration a driver accepts in a turn (m/s²); dawdle: random hesitation, as a share of
@@ -881,8 +883,13 @@
         const okA = this.routeOpen(a, 600), okB = this.routeOpen(b, 600);
         if (okA !== okB) return okA ? a : b;
       }
-      if (this.mode === 'adaptive' && this.features.vms && this.rngRoute() < 0.7) {
-        return this.routeTT(a) <= this.routeTT(b) ? a : b; // VMS / navigation advice, 70% compliance
+      if (this.mode === 'adaptive' && this.features.vms && this.rngRoute() < 0.7) { // VMS / navigation advice, 70% compliance
+        if (this.ring) return this.routeTT(a) <= this.routeTT(b) ? a : b;
+        // Real network: an empty side road looks free only because nobody is on it yet, and sending 70% of
+        // drivers there at once locks its give-way junctions. Sign the alternative only when it is clearly
+        // quicker and every road on it still has room.
+        const room = b.ids.every(id => this.links[id].occ < VMS_ALT_OCC);
+        return room && this.routeTT(b) < VMS_ALT_GAIN * this.routeTT(a) ? b : a;
       }
       if (Math.abs(a.len - b.len) < 0.1 * Math.min(a.len, b.len)) return this.rngRoute() < 0.5 ? a : b;
       return a.len < b.len ? a : b; // habit: shortest road
