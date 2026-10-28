@@ -257,7 +257,7 @@ a { color: inherit; }
 /* ================================================================ lab */
 .lab { display: grid; gap: 14px; }
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; box-shadow: var(--shadow); min-width: 0; }
-.panel.flush { padding: 0; overflow: hidden; }
+.panel.flush { padding: 0; overflow: hidden; overflow-x: auto; } /* wide tables scroll on phones instead of being cut off */
 .panel h4 { font-size: 14px; margin-bottom: 10px; letter-spacing: -0.01em; }
 .bar { display: flex; flex-wrap: wrap; gap: 10px 22px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 10px 14px; box-shadow: var(--shadow); }
 .group { display: flex; align-items: center; gap: 8px; }
