@@ -239,10 +239,11 @@
           <h4>SAARTHI layers <span class="hint">switch off to see what each adds</span></h4>
           <div class="toggles">
             <label class="tog gc-tog"><input type="checkbox" data-f="greenCorridor" checked><span>Green corridor lane<small>a dedicated lane the city builds on the ambulance route; general traffic never enters it, so nothing has to be cleared when an ambulance comes</small><small class="gc-note" id="gc-note"></small></span></label>
-            <label class="tog"><input type="checkbox" data-f="metering" checked><span>Perimeter metering</span></label>
+            <label class="tog"><input type="checkbox" data-f="metering" checked><span>Perimeter metering<small>schematic loop only: on a real map it would just hold traffic at the map's edge</small></span></label>
             <label class="tog"><input type="checkbox" data-f="vms" checked><span>VMS / navigation diversions</span></label>
             <label class="tog"><input type="checkbox" data-f="enforcement" checked><span>Vision enforcement</span></label>
             <label class="tog"><input type="checkbox" data-f="shaping" checked><span>Departure advice (shape demand)</span></label>
+            <label class="tog"><input type="checkbox" data-f="mergeControl" checked><span>Flyover-slip merge control<small>real maps: where a flyover slip gives way, the road with the longer queue goes first</small></span></label>
           </div>
         </div>
       </div>
@@ -424,12 +425,12 @@
         <thead><tr><th>On the real maps <span class="hint">OpenStreetMap roads, Google Maps-calibrated demand</span></th><th class="num">Junctions with a signal <span class="hint">that SAARTHI runs</span></th><th class="num">Average trip <span class="hint">fixed → SAARTHI</span></th><th class="num">95th-percentile trip <span class="hint">fixed → SAARTHI</span></th></tr></thead>
         <tbody>
           <tr><td><b>Connaught Place</b>, New Delhi</td><td class="num">13 of 73</td><td class="num">6.5 → 5.3 min <span class="delta good">▼ 18%</span></td><td class="num">10.4 → 8.1 min <span class="delta good">▼ 22%</span></td></tr>
-          <tr><td><b>Sector 62</b>, Noida</td><td class="num">3 of 104</td><td class="num">16.0 → 15.6 min <span class="delta good">▼ 3%</span></td><td class="num">61.2 → 66.4 min <span class="delta bad">▲ 9%</span></td></tr>
-          <tr><td><b>Film City corridor</b>, Noida</td><td class="num">1 of 152</td><td class="num">8.9 → 8.8 min <span class="delta flat">≈ same</span></td><td class="num">23.2 → 23.4 min <span class="delta flat">≈ same</span></td></tr>
+          <tr><td><b>Sector 62</b>, Noida</td><td class="num">3 of 104</td><td class="num">16.0 → 15.5 min <span class="delta good">▼ 3%</span></td><td class="num">61.2 → 64.7 min <span class="delta bad">▲ 6%</span></td></tr>
+          <tr><td><b>Film City corridor</b>, Noida</td><td class="num">1 of 152</td><td class="num">8.9 → 8.4 min <span class="delta good">▼ 5%</span></td><td class="num">23.2 → 22.0 min <span class="delta good">▼ 5%</span></td></tr>
         </tbody>
       </table>
     </div>
-    <p class="fine reveal">Why the real maps gain less: the schematic loop is four signalised junctions running right at capacity, where retiming signals matters most. On a real map SAARTHI can only retime the junctions where the twin runs a signal; the rest are give-way junctions, so its gain follows how many signals it runs. Sector 62's slow 95th-percentile trips come from one overloaded entry, the trunk road from the north-east, which jams the same way under both systems. After about 9:30 the twin is probably more congested than the real Sector 62 and Film City corridor (judged against Google Maps times), so read late-morning minutes there as an upper bound. Each real-map run takes minutes, so this table is measured offline (5 traffic seeds, 08:00–12:00, October 2026) rather than in your browser.</p>
+    <p class="fine reveal">Why the real maps gain less: the schematic loop is four signalised junctions running right at capacity, where retiming signals matters most. On a real map SAARTHI can only retime the junctions where the twin runs a signal; the rest are give-way junctions, so its gain follows how many signals it runs. On the Film City corridor, which has almost no signals, SAARTHI's small lead comes from managing the merges where flyover slip roads give way. Sector 62's slow 95th-percentile trips come from one overloaded entry, the trunk road from the north-east, which jams the same way under both systems. After about 9:30 the twin is probably more congested than the real Sector 62 and Film City corridor (judged against Google Maps times), so read late-morning minutes there as an upper bound. Each real-map run takes minutes, so this table is measured offline (5 traffic seeds, 08:00–12:00, October–November 2026) rather than in your browser.</p>
   </div>
 </section>
 

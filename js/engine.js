@@ -32,6 +32,8 @@
   const LOOP_XOVER_LEN = 60;    // m: a two-way road this short can be part of such a loop (a crossover)
   const DEADLOCK_T = 240;      // s a vehicle may sit stuck in a junction box on a real map before it is squeezed out
   const ZIP_V = 3;             // m/s: main-road traffic slower than this takes turns with a side road (zipper merge)
+  const MERGE_EVERY = 10;      // s: SAARTHI re-picks which road goes first where a flyover slip gives way…
+  const MERGE_HYST = 0.1;      // …switching only when the other road's queue is this much fuller (occupancy)
   const KEEP_CLEAR_V = 2;      // m/s: a full exit road whose tail moves faster than this doesn't hold drivers at the line
   const DETOUR_MAX = 1.5;      // a marshal only waves stuck vehicles onto a way round at most this much longer…
   const DETOUR_SLACK = 60;      // …plus this many seconds at free flow
@@ -340,7 +342,7 @@
   class Sim {
     constructor(opts) {
       this.mode = opts.mode; // 'fixed' | 'adaptive'
-      this.features = Object.assign({ greenCorridor: true, metering: true, vms: true, enforcement: true, shaping: true }, opts.features || {});
+      this.features = Object.assign({ greenCorridor: true, metering: true, vms: true, enforcement: true, shaping: true, mergeControl: true }, opts.features || {});
       this.net = networkById(opts.network);
       this.hooks = this.net.hooks;
       this.ring = this.net.ring || null;
@@ -623,6 +625,9 @@
           j.lastGreenEnd = j.approaches.map(() => this.t);
         } else j.free = j.ins.slice();
         for (const L of j.free) L.free = true;
+        // A flyover slip road that comes down to give way to a busier road: SAARTHI can control this merge.
+        j.slipMerge = !j.sig && j.ins.some(L => L.kind === 'slip' && L.level > 0 && j.ins.some(M => M.rank > L.rank));
+        j.mergePrio = null; j.mergeT = -1e9;
       }
       this.junctions = this.isects.filter(j => j.type === 'J');
       this.computeFixedPlans();
@@ -945,8 +950,11 @@
       }
     }
 
+    // Only on the Film City loop, where its entries are real ramps. A real map's entries are just its edge:
+    // holding traffic there moves the queue off the map, where it still counts (5 seeds on Film City: SAARTHI's
+    // average trip was shorter on all five with metering off).
     isMetered(x) {
-      if (this.mode !== 'adaptive' || !this.features.metering) return false;
+      if (this.mode !== 'adaptive' || !this.features.metering || !this.ring) return false;
       const j = this.nodes[x.j];
       const occ = Math.max(0, ...j.outs.filter(L => L.kind !== 'exit').map(L => L.occ));
       if (x.metered) return occ > 0.55 || j.boxBlocked;
@@ -1085,6 +1093,7 @@
     // gone, the side road's next car goes. After 15 s of waiting, drivers nose in anyway, so nothing starves.
     mustYield(veh, L, j) {
       if (veh.isEV) return false;
+      if (j.slipMerge && this.mode === 'adaptive' && this.features.mergeControl) return this.mergeYield(veh, L, j);
       const next = this.links[veh.route[veh.ri + 1]];
       const joining = next && next.circ && !L.circ; // entering a roundabout / loop
       if (veh.curWait > (joining ? 40 : 15)) return false;
@@ -1102,6 +1111,30 @@
           // a queued car on the main road waiting for the same space goes first
           if (d < 12 && v.route[v.ri + 1] === (next && next.id)) return true;
         }
+      }
+      return false;
+    }
+
+    // SAARTHI merge control where a flyover slip gives way: the road with the fuller queue goes first
+    // (cameras on both approaches, a merge signal or marshal), re-picked every 10 s. The other road gives
+    // way to it as at any give-way junction. At plain merges this didn't help: there the merge box, not
+    // giving way, sets the pace, so priority only moves the waiting from one road to the other.
+    mergeYield(veh, L, j) {
+      if (veh.curWait > 15) return false;
+      if (this.t - j.mergeT >= MERGE_EVERY) {
+        const cur = j.mergePrio || j.ins.reduce((a, M) => (M.rank > a.rank ? M : a));
+        let best = cur;
+        for (const M of j.ins) if (M.occ > best.occ + (best === cur ? MERGE_HYST : 0)) best = M;
+        if (best !== cur) this.addLog(`Merge control: ${best.name} goes first (queue fuller)`, 'decision');
+        j.mergePrio = best; j.mergeT = this.t;
+      }
+      const P = j.mergePrio;
+      if (P === L) return false;
+      for (const arr of P.lane) {
+        const v = arr[0];
+        if (!v) continue;
+        const d = P.length - v.pos;
+        if (d < 12 || (d < 40 && v.v > 1 && d / v.v < 3)) return true;
       }
       return false;
     }

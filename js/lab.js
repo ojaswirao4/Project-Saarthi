@@ -14,7 +14,7 @@
     running: true, speed: 5, startHour: 8.5, demand: 1, view: 'split', colorBy: 'speed',
     seed: 7, selected: null, approach: 0, visible: false, scenario: null,
     area: AREAS.some(a => a.id === qs.get('area')) ? qs.get('area') : DEFAULT_AREA,
-    features: { greenCorridor: true, metering: true, vms: true, enforcement: true, shaping: true },
+    features: { greenCorridor: true, metering: true, vms: true, enforcement: true, shaping: true, mergeControl: true },
   };
   let fixed = null, smart = null;
 
