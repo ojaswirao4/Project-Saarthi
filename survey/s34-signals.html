@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signal survey · Sector 34 Noida</title>
+<style>
+  :root { --bg: #f6f7f9; --surface: #fff; --ink: #14181f; --muted: #5b6573; --line: #dde1e7; --accent: #1f5fbf; --good: #1d7a46; --bad: #b42318; --warn: #a15c00; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0f1216; --surface: #171b21; --ink: #e8ebef; --muted: #9aa4b1; --line: #2a313a; --accent: #6ea8ff; --good: #4cc38a; --bad: #ff7a6b; --warn: #f0b45a; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p { margin: 6px 0; } .muted { color: var(--muted); }
+  .box { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; background: var(--bg); }
+  td small { display: block; color: var(--muted); }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); margin-top: 3px; }
+  .tag.amb { color: var(--bad); border-color: var(--bad); }
+  a { color: var(--accent); }
+  .ch { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ch label { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; cursor: pointer; white-space: nowrap; }
+  .ch input { margin: 0 4px 0 0; }
+  .ch label:has(input[value="yes"]:checked) { border-color: var(--good); color: var(--good); font-weight: 600; }
+  .ch label:has(input[value="no"]:checked) { border-color: var(--bad); color: var(--bad); font-weight: 600; }
+  .ch label:has(input[value="unsure"]:checked) { border-color: var(--warn); color: var(--warn); font-weight: 600; }
+  input[type=text], select { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); width: 100%; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .meta label { font-size: 12px; color: var(--muted); display: grid; gap: 3px; }
+  button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+  #count { margin-left: 10px; color: var(--muted); }
+  @media (max-width: 760px) { .hide-sm { display: none; } table { font-size: 13px; } }
+</style></head>
+<body><main>
+  <h1>Traffic signal survey · Sector 34, Noida</h1>
+  <p class="muted">For the SAARTHI digital twin. OpenStreetMap, which the twin's road network comes from, marks a signal at 0 of these 4 junctions. Mark each one as it is on the ground.</p>
+  <div class="box">
+    <p><b>How to check:</b> open <b>Street View</b> for the junction and look for signal heads (the light poles) on any arm. If the imagery is old or unclear, choose <i>Can't tell</i> and add a note; a site visit or the traffic police's list settles it.</p>
+    <p class="muted">Junctions on the ambulance route in the twin are listed first. Only roads in the model (tertiary and above) are listed: if a signal is where a smaller sector road meets a main road, write it in the note on the nearest row.</p>
+  </div>
+  <div class="box meta">
+    <label>Checked by<input type="text" id="by" placeholder="name, organisation"></label>
+    <label>Date<input type="text" id="on" placeholder="YYYY-MM-DD"></label>
+    <label>Method<select id="method"><option>Google Street View</option><option>Site visit</option><option>Traffic police list</option><option>Mixed</option></select></label>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Junction</th><th class="hide-sm">Map</th><th>On the ground</th><th class="hide-sm">Note</th></tr></thead>
+    <tbody>
+      <tr data-i="0">
+        <td>1</td>
+        <td><b>Shaheed Captain Shashikant Sharma Marg</b><small>Shaheed Captain Shashikant Sharma Marg, City Center Marg, Sector 32 Marg</small><small>28.575456, 77.357269 · OSM: no signal</small><span class="tag amb">ambulance route</span></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.575456,77.357269" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.575456,77.357269" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s0" value="yes">Signal</label>
+          <label><input type="radio" name="s0" value="no">No signal</label>
+          <label><input type="radio" name="s0" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n0" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="1">
+        <td>2</td>
+        <td><b>Main Road Gijhor × Shaheed Captain Shashikant Sharma Marg</b><small>Main Road Gijhor, Shaheed Captain Shashikant Sharma Marg</small><small>28.582347, 77.366222 · OSM: no signal</small><span class="tag amb">ambulance route</span></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.582347,77.366222" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.582347,77.366222" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s1" value="yes">Signal</label>
+          <label><input type="radio" name="s1" value="no">No signal</label>
+          <label><input type="radio" name="s1" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n1" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="2">
+        <td>3</td>
+        <td><b>Main Road Gijhor</b><small>Main Road Gijhor</small><small>28.588722, 77.360391 · OSM: no signal</small><span class="tag amb">ambulance route</span></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.588722,77.360391" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.588722,77.360391" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s2" value="yes">Signal</label>
+          <label><input type="radio" name="s2" value="no">No signal</label>
+          <label><input type="radio" name="s2" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n2" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="3">
+        <td>4</td>
+        <td><b>City Center Marg</b><small>City Center Marg</small><small>28.582499, 77.351695 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.582499,77.351695" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.582499,77.351695" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s3" value="yes">Signal</label>
+          <label><input type="radio" name="s3" value="no">No signal</label>
+          <label><input type="radio" name="s3" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n3" value="" placeholder="optional"></td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="margin-top:14px"><button id="save">Download s34.json</button><span id="count"></span></p>
+  <p class="muted">Put the downloaded file at <code>tools/signals/s34.json</code> in the project and run <code>node tools/osm-import.js s34</code>. Junctions marked <i>Signal</i> become signalised in the twin; <i>No signal</i> removes an OSM signal; <i>Can't tell</i> leaves OSM as it is.</p>
+</main>
+<script>
+  const ROWS = [{"name":"Shaheed Captain Shashikant Sharma Marg","roads":"Shaheed Captain Shashikant Sharma Marg, City Center Marg, Sector 32 Marg","lat":28.575456,"lon":77.357269},{"name":"Main Road Gijhor × Shaheed Captain Shashikant Sharma Marg","roads":"Main Road Gijhor, Shaheed Captain Shashikant Sharma Marg","lat":28.582347,"lon":77.366222},{"name":"Main Road Gijhor","roads":"Main Road Gijhor","lat":28.588722,"lon":77.360391},{"name":"City Center Marg","roads":"City Center Marg","lat":28.582499,"lon":77.351695}];
+  const KEY = 'saarthi-survey-s34';
+  const $ = s => document.querySelector(s);
+  function read() {
+    return ROWS.map((r, i) => {
+      const v = (document.querySelector('input[name="s' + i + '"]:checked') || {}).value;
+      const note = (document.querySelector('input[name="n' + i + '"]') || {}).value || '';
+      return Object.assign({}, r, { signal: v === 'yes' ? true : v === 'no' ? false : null }, note ? { note } : {});
+    });
+  }
+  function count() { const p = read(); $('#count').textContent = p.filter(x => x.signal !== null).length + ' of ' + p.length + ' marked'; }
+  // keep progress in this browser until the file is downloaded
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved) {
+      ['by', 'on', 'method'].forEach(k => { if (saved[k]) $('#' + k).value = saved[k]; });
+      (saved.points || []).forEach((p, i) => {
+        if (p.signal !== null) { const r = document.querySelector('input[name="s' + i + '"][value="' + (p.signal ? 'yes' : 'no') + '"]'); if (r) r.checked = true; }
+        if (p.note) document.querySelector('input[name="n' + i + '"]').value = p.note;
+      });
+    }
+  } catch (e) {}
+  if (!$('#on').value) $('#on').value = new Date().toISOString().slice(0, 10);
+  function doc() { return { area: 's34', surveyedOn: $('#on').value, by: $('#by').value, method: $('#method').value, points: read() }; }
+  document.addEventListener('change', () => { count(); try { localStorage.setItem(KEY, JSON.stringify(doc())); } catch (e) {} });
+  document.addEventListener('input', () => { try { localStorage.setItem(KEY, JSON.stringify(doc())); } catch (e) {} });
+  $('#save').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(doc(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 's34.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  count();
+</script>
+</body></html>
