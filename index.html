@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/site.css">
+  <link rel="stylesheet" href="css/console.css">
   <script>
     try { const t = localStorage.getItem('saarthi-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
@@ -26,7 +27,7 @@
       <a href="#problem">Problem</a>
       <a href="#approach">Approach</a>
       <a href="#twin">Live twin</a>
-      <a href="#plan">Plan ahead</a>
+      <a href="#console">Control console</a>
       <a href="#results">Results</a>
       <a href="#architecture">Architecture</a>
       <a href="#rollout">Rollout</a>
@@ -173,7 +174,7 @@
     <div class="section-head reveal">
       <div class="eyebrow">03 · The live twin</div>
       <h2>Same traffic. Two control systems. Watch them diverge.</h2>
-      <p class="lead">Both twins get identical arrivals, with the same vehicles at the same seconds. Only the control system differs. Inject an incident and it hits both at the same instant, and the stopwatch times how long each takes to recover. Switch the area to the real Film City corridor, Connaught Place or Sector 62 to run on the actual road network pulled from OpenStreetMap: every junction, U-turn, slip road and flyover.</p>
+      <p class="lead">Both twins get identical arrivals, with the same vehicles at the same seconds. Only the control system differs. Inject an incident and it hits both at the same instant, and the stopwatch times how long each takes to recover. Switch the area to the real Film City corridor, Connaught Place, Sector 62 or Sector 34 to run on the actual road network pulled from OpenStreetMap: every junction, U-turn, slip road and flyover.</p>
     </div>
   </div>
   <div class="wrap wide">
@@ -214,6 +215,10 @@
           <span class="lbl">Colour</span>
           <div class="seg" id="seg-color"><button data-v="speed" class="on">Speed</button><button data-v="type">Type</button></div>
         </div>
+        <div class="group" id="grp-map">
+          <span class="lbl">Map</span>
+          <div class="seg" id="seg-map"><button data-v="streets">Streets</button><button data-v="satellite">Satellite</button><button data-v="off">Off</button></div>
+        </div>
         <div class="clock-mini"><span id="clock">--:--:--</span><small id="clock-sub">simulated</small></div>
       </div>
       <div class="net-info" id="net-info"></div>
@@ -238,7 +243,8 @@
         <div class="panel">
           <h4>SAARTHI layers <span class="hint">switch off to see what each adds</span></h4>
           <div class="toggles">
-            <label class="tog gc-tog"><input type="checkbox" data-f="greenCorridor" checked><span>Green corridor lane<small>a dedicated lane the city builds on the ambulance route; general traffic never enters it, so nothing has to be cleared when an ambulance comes</small><small class="gc-note" id="gc-note"></small></span></label>
+            <label class="tog gc-tog"><input type="checkbox" data-f="greenCorridor" checked><span>Green corridor lane<small>on the main ambulance route a lane the city has built; on any other route to any hospital, the median lane is cleared for the ambulance when it is dispatched and opens again once it has passed</small><small class="gc-note" id="gc-note"></small></span></label>
+            <label class="tog"><input type="checkbox" data-f="signalPriority" checked><span>Smart signal priority<small>SAARTHI suggests changing the lights on the ambulance's route; the controller approves, and each approved signal turns green before it gets there (works with or without the lane)</small></span></label>
             <label class="tog"><input type="checkbox" data-f="metering" checked><span>Perimeter metering<small>schematic loop only: on a real map it would just hold traffic at the map's edge</small></span></label>
             <label class="tog"><input type="checkbox" data-f="vms" checked><span>VMS / navigation diversions</span></label>
             <label class="tog"><input type="checkbox" data-f="enforcement" checked><span>Vision enforcement</span></label>
@@ -247,6 +253,8 @@
           </div>
         </div>
       </div>
+
+      <div class="panel amb" id="amb" hidden aria-live="polite"></div>
 
       <div class="twins view-split" id="twins">
         <article class="pane" id="pane-fixed">
@@ -319,77 +327,152 @@
   </div>
 </section>
 
-<!-- ============================================================ PLAN AHEAD (what-if) -->
-<section class="section alt" id="plan">
+<!-- ============================================================ CONTROL CONSOLE -->
+<section class="section alt" id="console">
   <div class="wrap">
     <div class="section-head reveal">
-      <div class="eyebrow">04 · Plan ahead</div>
-      <h2>Know a disruption is coming? Rehearse it in the twin first.</h2>
-      <p class="lead">Enter a protest, a VIP movement or a big event before it happens. The planner simulates today's approach and several SAARTHI plans on identical traffic, then recommends one with a timeline, public diversions and a separate VIP route. It can also add an unplanned crash to check that the plan gets caught and corrected.</p>
-    </div>
-
-    <div class="wi reveal">
-      <div class="panel wi-form">
-        <h4>What's coming</h4>
-        <div class="seg wi-type" id="wi-type" role="group" aria-label="Disruption type">
-          <button data-v="protest" class="on">✊ Protest / rally</button>
-          <button data-v="vip">🚩 VIP movement</button>
-          <button data-v="event">🎟 Big event</button>
-        </div>
-        <p class="wi-blurb" id="wi-blurb"></p>
-        <div class="wi-fields" id="wi-fields"></div>
-        <label class="tog wi-dist"><input type="checkbox" id="wi-dist"><span>Add an unplanned crash during the plan<small>blocks the busiest open road; tests whether SAARTHI catches and corrects it</small></span></label>
-        <button class="btn btn-primary" id="wi-run">Simulate the options <span aria-hidden="true">→</span></button>
-        <div class="bench-run wi-progress" id="wi-progress" hidden>
-          <div class="bench-bar"><div class="bench-fill" id="wi-fill"></div></div>
-          <div class="bench-status" id="wi-status"></div>
-        </div>
-      </div>
-      <figure class="panel wi-map">
-        <svg id="wi-svg" viewBox="0 0 1000 640" role="img" aria-label="Map of the planned disruption"></svg>
-        <figcaption id="wi-cap"></figcaption>
-      </figure>
-    </div>
-
-    <div class="wi-out" id="wi-out" hidden>
-      <div class="wi-reco" id="wi-reco"></div>
-      <div class="panel flush">
-        <table class="wi-opts" aria-label="Every option simulated">
-          <thead id="wi-opts-h"></thead>
-          <tbody id="wi-opts"></tbody>
-        </table>
-      </div>
-      <div class="wi-grid">
-        <figure class="chart panel">
-          <figcaption>Vehicles stopped <span class="hint">in the loop + queued to enter</span></figcaption>
-          <div class="chart-legend" id="wi-legend"></div>
-          <div class="chart-box tall"><canvas id="wi-chart"></canvas><div class="tip" hidden></div></div>
-        </figure>
-        <div class="panel">
-          <h4>Action timeline</h4>
-          <ol class="wi-steps" id="wi-steps"></ol>
-        </div>
-      </div>
-      <div class="panel">
-        <h4 id="wi-routes-h">Routes</h4>
-        <div class="wi-routes" id="wi-routes"></div>
-      </div>
-      <div class="panel wi-dist-out" id="wi-dist-out" hidden>
-        <h4 id="wi-dist-h"></h4>
-        <div class="wi-dist-grid">
-          <div>
-            <ol class="wi-flow" id="wi-flow"></ol>
-            <p class="wi-dist-note" id="wi-dist-note"></p>
-          </div>
-          <figure class="chart">
-            <div class="chart-legend" id="wi-dlegend"></div>
-            <div class="chart-box"><canvas id="wi-dchart"></canvas><div class="tip" hidden></div></div>
-          </figure>
-        </div>
-      </div>
-      <p class="fine">Same caveats as the twin: schematic geometry and assumed demand, so read the ranking and the relative change rather than absolute minutes. Advance-notice reach (80%), VMS compliance (70%) and clearance times (6 min with camera detection, 15 min without) are modelling assumptions. Security needs can override the traffic ranking, especially for VIP movements.</p>
+      <div class="eyebrow">04 · Control console</div>
+      <h2>The traffic controller's screen.</h2>
+      <p class="lead">One live SAARTHI twin of a real area, on the real map. Log a road closure, a crash, an ambulance or an event crowd. SAARTHI works out who is heading that way and the way round for each direction, and drafts the message travellers get on the SAARTHI app. Nothing reaches drivers until the controller sends it; each incident then shows what the advisory actually did. For something known in advance (a protest, a VIP movement, a big event), the <b>Plan ahead</b> tab rehearses it first and schedules the recommended plan.</p>
     </div>
   </div>
+  <div class="wrap wide">
+    <div class="console" id="console-app">
+      <header class="cbar">
+        <div class="cbar-title"><b>SAARTHI</b> <span>Control console</span></div>
+        <div class="seg ctabs" id="c-tabs" role="tablist"><button data-v="live" class="on" role="tab">Live</button><button data-v="plan" role="tab">Plan ahead</button></div>
+        <label class="cfield">Area <select id="c-area"></select></label>
+        <div class="cclock"><span class="clive">Live</span><span id="c-clock">--:--:--</span><small id="c-load"></small></div>
+        <div class="cstats"><span title="Vehicles on the roads of this area right now"><b id="c-veh">—</b> vehicles</span><span title="Vehicles standing still right now: waiting at red lights or in a queue, plus any waiting to enter the map at its edges"><b id="c-queued">—</b> stopped</span></div>
+        <div class="cbar-end">
+          <select id="c-map" aria-label="Background map"><option value="streets">Street map</option><option value="satellite">Satellite</option><option value="off">No map</option></select>
+        </div>
+      </header>
+      <div class="cmain">
+        <div class="cmap">
+          <div class="cv-host"><canvas id="c-cv"></canvas>
+            <div class="pick-hint" id="c-pick" hidden></div>
+          </div>
+          <div class="clog"><h3>Activity</h3><ol id="c-log"></ol></div>
+        </div>
+      
+        <aside class="cside">
+          <div class="cpanel" id="p-new">
+            <h2>Log an incident</h2>
+            <div class="ctypes" role="tablist">
+              <button type="button" data-type="closure" class="on">Road closure</button>
+              <button type="button" data-type="crash">Crash</button>
+              <button type="button" data-type="ambulance">Ambulance</button>
+              <button type="button" data-type="event">Event crowd</button>
+            </div>
+            <form id="f-new" autocomplete="off"></form>
+          </div>
+      
+          <div class="cpanel" id="p-draft" hidden>
+            <h2>Advisory draft <span class="tag" id="d-for"></span></h2>
+            <p class="dnote">Drafted by SAARTHI. Nothing reaches travellers until you send it.</p>
+            <div class="dreach" id="d-reach"></div>
+            <div id="d-routes"></div>
+            <label class="dl">Title<input id="d-title" maxlength="70"></label>
+            <label class="dl">Message<textarea id="d-body" rows="5" maxlength="400"></textarea></label>
+            <div class="dl">Traveller sees</div>
+            <div class="notif" id="d-preview">
+              <div class="notif-h"><span class="notif-app">SAARTHI · Traffic Control</span><span>now</span></div>
+              <b class="notif-t"></b>
+              <p class="notif-b"></p>
+            </div>
+            <div class="dactions">
+              <button class="btn btn-primary btn-sm" type="button" id="d-send">Send advisory</button>
+              <button class="btn btn-sm" type="button" id="d-hold">Hold, don't send</button>
+            </div>
+            <p class="dassume" id="d-assume"></p>
+          </div>
+      
+          <div class="cpanel" id="p-sched" hidden>
+            <h2>Scheduled plans</h2>
+            <ol class="clist" id="c-sched"></ol>
+          </div>
+
+          <div class="cpanel" id="p-cam">
+            <h2>Camera alerts</h2>
+            <p class="dnote">From the junction cameras: vehicles stuck inside a junction for 20 s or more because the road out is full. Send the marshal posted there to wave them out.</p>
+            <ol class="clist" id="c-cam"><li class="empty">No junction blocked.</li></ol>
+          </div>
+
+          <div class="cpanel" id="p-active">
+            <h2>Incidents</h2>
+            <ol class="clist" id="c-list"><li class="empty">None logged.</li></ol>
+          </div>
+        </aside>
+      </div>
+      <div class="cplan" id="c-plan" hidden>
+      <div class="wi">
+        <div class="panel wi-form">
+          <h4>What's coming</h4>
+          <p class="wi-blurb">Plans are for the area open in the console. SAARTHI rehearses the event in fast-forward on identical traffic, compares today's usual approach with its own plans, and recommends one. Schedule it and it runs in the live twin at the planned time.</p>
+          <label class="wi-field wi-area" hidden><span>Area</span><select id="wi-area"></select></label>
+          <div class="seg wi-type" id="wi-type" role="group" aria-label="Disruption type">
+            <button data-v="protest" class="on">Protest / rally</button>
+            <button data-v="vip">VIP movement</button>
+            <button data-v="event">Big event</button>
+          </div>
+          <p class="wi-blurb" id="wi-blurb"></p>
+          <div class="wi-fields" id="wi-fields"></div>
+          <label class="tog wi-dist"><input type="checkbox" id="wi-dist"><span>Add an unplanned crash during the plan<small>blocks the busiest open road; tests whether SAARTHI catches and corrects it</small></span></label>
+          <button class="btn btn-primary" id="wi-run">Simulate the options <span aria-hidden="true">→</span></button>
+          <div class="bench-run wi-progress" id="wi-progress" hidden>
+            <div class="bench-bar"><div class="bench-fill" id="wi-fill"></div></div>
+            <div class="bench-status" id="wi-status"></div>
+          </div>
+        </div>
+        <figure class="panel wi-map">
+          <svg id="wi-svg" viewBox="0 0 1000 640" role="img" aria-label="Map of the planned disruption"></svg>
+          <figcaption id="wi-cap"></figcaption>
+        </figure>
+      </div>
+
+      <div class="wi-out" id="wi-out" hidden>
+        <div class="wi-reco" id="wi-reco"></div>
+        <div class="panel flush">
+          <table class="wi-opts" aria-label="Every option simulated">
+            <thead id="wi-opts-h"></thead>
+            <tbody id="wi-opts"></tbody>
+          </table>
+        </div>
+        <div class="wi-grid">
+          <figure class="chart panel">
+            <figcaption>Vehicles stopped <span class="hint">in the loop + queued to enter</span></figcaption>
+            <div class="chart-legend" id="wi-legend"></div>
+            <div class="chart-box tall"><canvas id="wi-chart"></canvas><div class="tip" hidden></div></div>
+          </figure>
+          <div class="panel">
+            <h4>Action timeline</h4>
+            <ol class="wi-steps" id="wi-steps"></ol>
+          </div>
+        </div>
+        <div class="panel">
+          <h4 id="wi-routes-h">Routes</h4>
+          <div class="wi-routes" id="wi-routes"></div>
+        </div>
+        <div class="panel wi-dist-out" id="wi-dist-out" hidden>
+          <h4 id="wi-dist-h"></h4>
+          <div class="wi-dist-grid">
+            <div>
+              <ol class="wi-flow" id="wi-flow"></ol>
+              <p class="wi-dist-note" id="wi-dist-note"></p>
+            </div>
+            <figure class="chart">
+              <div class="chart-legend" id="wi-dlegend"></div>
+              <div class="chart-box"><canvas id="wi-dchart"></canvas><div class="tip" hidden></div></div>
+            </figure>
+          </div>
+        </div>
+        <p class="fine">Same caveats as the twin: demand is calibrated by assumption (and the Film City loop's geometry is schematic), so read the ranking and the relative change rather than absolute minutes. Advance-notice reach (80%), VMS compliance (70%) and clearance times (6 min with camera detection, 15 min without) are modelling assumptions. The real maps leave out residential and sector roads, so a closure can leave some trips with no way through on the mapped roads; those finish off the map with an assumed detour of +5 min (told in advance) or +10 min (turned back at the barricade). Security needs can override the traffic ranking, especially for VIP movements.</p>
+      </div>
+      </div>
+    </div>
+  </div>
+</div>
 </section>
 
 <!-- ============================================================ RESULTS -->
@@ -502,18 +585,21 @@
 <footer class="footer">
   <div class="wrap foot-in">
     <div><b>Project SAARTHI</b> · Prepared by Uneecops · Digital twin prototype v1</div>
-    <div class="fine">The Film City loop, the planner and the results use schematic geometry and assumed demand. The real-map areas use OpenStreetMap roads, with demand calibrated to Google Maps typical travel times at 6 AM, 9 AM and 1 PM. The control brain is a deterministic stand-in for the MARL policy and has the same shape as its safety-floor fallback.</div>
+    <div class="fine">The Film City loop and the results use schematic geometry and assumed demand. The real-map areas use OpenStreetMap roads, with demand calibrated to Google Maps typical travel times at 6 AM, 9 AM and 1 PM (Sector 34 is not yet calibrated). The control brain is a deterministic stand-in for the MARL policy and has the same shape as its safety-floor fallback.</div>
   </div>
 </footer>
 
 <script src="js/networks/fco.js"></script>
 <script src="js/networks/cp.js"></script>
 <script src="js/networks/s62.js"></script>
+<script src="js/networks/s34.js"></script>
 <script src="js/engine.js"></script>
+<script src="js/basemap.js"></script>
 <script src="js/render.js"></script>
 <script src="js/charts.js"></script>
-<script src="js/lab.js"></script>
 <script src="js/planner.js"></script>
+<script src="js/lab.js"></script>
+<script src="js/console.js"></script>
 <script src="js/whatif.js"></script>
 <script src="js/site.js"></script>
 </body>

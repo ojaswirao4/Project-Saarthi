@@ -38,6 +38,18 @@
     for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
   }
 
+  // The first `d` units of a polyline, and the last `d`.
+  function headPts(pts, d) {
+    const out = [pts[0]];
+    for (let i = 1; i < pts.length; i++) {
+      const [ax, ay] = pts[i - 1], [bx, by] = pts[i], s = Math.hypot(bx - ax, by - ay);
+      if (s >= d) { const u = s ? d / s : 0; out.push([ax + (bx - ax) * u, ay + (by - ay) * u]); return out; }
+      d -= s; out.push(pts[i]);
+    }
+    return out;
+  }
+  const tailPts = (pts, d) => headPts(pts.slice().reverse(), d).reverse();
+
   const lvl = L => (L.level > 0 ? 1 : 0);
 
   class Renderer {
@@ -126,6 +138,11 @@
       this.px = 1 / this.scale; // one screen pixel in world units
       this.world();
       if (sim.net.schematic) this.drawBlock();
+      else if (window.SAARTHI_BASEMAP) { // the real map under the simulated roads: buildings, apartments, local roads
+        const s = this.scale, view = { x0: -this.ox / s, y0: -this.oy / s, x1: (this.cw - this.ox) / s, y1: (this.ch - this.oy) / s };
+        window.SAARTHI_BASEMAP.drawCanvas(ctx, sim.net, view, 1 / (s * this.dpr), theme.ground);
+      }
+      this.evAt = []; // where each ambulance was drawn (the twin's "follow the ambulance" reads it)
       for (const level of [0, 1]) {
         this.drawRoads(level);
         this.drawPlan(level);
@@ -209,18 +226,61 @@
       const pad = sim.net.schematic ? 7 : 2.5;
       ctx.fillStyle = theme.road;
       for (const j of nodes) { ctx.beginPath(); ctx.arc(j.x, j.y, j.r + pad, 0, Math.PI * 2); ctx.fill(); }
-      if (this.scale * links[0].lw < 2.2) return; // lane markings only when they are visible
-      ctx.lineWidth = Math.max(0.5, 0.6 * this.px);
+      if (this.scale * links[0].lw < 1.6) return; // markings only when a lane is wide enough to see
+      this.drawMarkings(links);
+    }
+
+    // Road markings as painted (IRC-style, urban): dashed white lane lines, 3 m line / 5 m gap, solid for the
+    // last 20 m before a signal (no lane changes on the approach); solid edge lines on the kerb and median
+    // sides; a stop line across the approach at each signal. Widths never drop below a screen pixel.
+    drawMarkings(links) {
+      const { ctx, sim, theme } = this, px = this.px;
+      const k = sim.net.schematic ? 1.5 : 1; // the schematic loop is drawn in px, not metres
+      const sigEnd = L => { const j = sim.nodes[L.to]; return !!(j && j.sig && !L.free && L.kind !== 'exit'); };
+      const NO_CHANGE = 20 * k;
+      ctx.lineCap = 'butt';
+      // lane lines
       ctx.strokeStyle = theme.lane;
-      ctx.setLineDash([4, 5]);
+      ctx.lineWidth = Math.max(0.15 * k, 0.9 * px);
+      ctx.setLineDash([3 * k, 5 * k]);
       ctx.beginPath();
-      for (const L of links) for (let k = 1; k < L.lanes; k++) strokePath(ctx, offsetPath(L, L.base + k * L.lw));
+      for (const L of links) {
+        const stop = sigEnd(L) && L.length > NO_CHANGE * 1.5;
+        for (let i = 1; i < L.lanes; i++) {
+          if (L.gc != null && i === L.lanes - L.gc - 1) continue; // the corridor lane has its own solid line
+          const p = offsetPath(L, L.base + i * L.lw);
+          strokePath(ctx, stop ? headPts(p, L.length - NO_CHANGE) : p);
+        }
+      }
       ctx.stroke();
       ctx.setLineDash([]);
+      ctx.beginPath(); // solid on the signal approach
+      for (const L of links) {
+        if (!sigEnd(L) || L.length <= NO_CHANGE * 1.5) continue;
+        for (let i = 1; i < L.lanes; i++) {
+          if (L.gc != null && i === L.lanes - L.gc - 1) continue;
+          strokePath(ctx, tailPts(offsetPath(L, L.base + i * L.lw), NO_CHANGE));
+        }
+      }
+      ctx.stroke();
+      // edge lines: kerb side, and the median side of a two-way road
       ctx.strokeStyle = theme.kerb;
-      ctx.lineWidth = 0.6;
+      ctx.lineWidth = Math.max(0.2 * k, 1 * px);
       ctx.beginPath();
-      for (const L of links) strokePath(ctx, offsetPath(L, L.base + L.lanes * L.lw));
+      for (const L of links) {
+        strokePath(ctx, offsetPath(L, L.base + L.lanes * L.lw - 0.25 * k));
+        if (!L.oneway) strokePath(ctx, offsetPath(L, L.base + 0.25 * k));
+      }
+      ctx.stroke();
+      // stop lines
+      ctx.lineWidth = Math.max(0.5 * k, 2 * px);
+      ctx.beginPath();
+      for (const L of links) {
+        if (!sigEnd(L)) continue;
+        const f = frameAt(L, Math.max(0, L.length - 1.5 * k)), nx = f[3], ny = -f[2];
+        ctx.moveTo(f[0] + nx * L.base, f[1] + ny * L.base);
+        ctx.lineTo(f[0] + nx * (L.base + L.lanes * L.lw), f[1] + ny * (L.base + L.lanes * L.lw));
+      }
       ctx.stroke();
     }
 
@@ -230,15 +290,39 @@
       const vip = theme.vip || VIP;
       for (const L of sim.linkList) {
         if (lvl(L) !== level) continue;
-        if (L.gc != null) {
+        if (L.gc != null) { // green corridor lane: tinted surface, double solid line, AMBULANCE ONLY painted on it
+          const px = this.px, edge = L.base + (L.lanes - L.gc - 1) * L.lw, wide = this.scale * L.lw;
           ctx.strokeStyle = GC;
-          ctx.globalAlpha = 0.7;
-          ctx.lineWidth = Math.max(L.lw * 0.9, 3 * this.px);
+          ctx.globalAlpha = wide < 1.6 ? 0.8 : 0.45;
+          ctx.lineWidth = Math.max(L.lw * 0.96, 3 * px);
           ctx.beginPath(); strokePath(ctx, offsetPath(L, laneOffset(L, L.gc))); ctx.stroke();
           ctx.globalAlpha = 1;
-          ctx.strokeStyle = '#ffffff'; // solid line: general traffic may not cross into it
-          ctx.lineWidth = Math.max(0.6, 0.9 * this.px);
-          ctx.beginPath(); strokePath(ctx, offsetPath(L, L.base + (L.lanes - L.gc - 1) * L.lw)); ctx.stroke();
+          if (wide >= 1.6) {
+            ctx.strokeStyle = '#ffffff'; // double solid line: general traffic may not cross into it
+            ctx.lineWidth = Math.max(0.15, 0.9 * px);
+            const gap = Math.max(0.2, 1.4 * px);
+            ctx.beginPath();
+            strokePath(ctx, offsetPath(L, edge - gap)); strokePath(ctx, offsetPath(L, edge + gap));
+            ctx.stroke();
+          }
+          if (wide >= 9 && L.length > 40) { // close enough to read the paint
+            ctx.fillStyle = '#ffffff';
+            ctx.font = `700 ${(L.lw * 0.42).toFixed(2)}px system-ui, sans-serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            for (let s = Math.min(30, L.length / 2); s < L.length - 15; s += 90) {
+              const [x, y] = lanePoint(L, L.gc, s), f = frameAt(L, s);
+              ctx.save(); ctx.translate(x, y); ctx.rotate(Math.atan2(f[3], f[2]));
+              ctx.fillText('AMBULANCE ONLY', 0, 0);
+              ctx.restore();
+            }
+          }
+        }
+        if (L.evLane != null) { // median lane cleared for an ambulance now (green corridor on demand): green, dashed
+          ctx.strokeStyle = GC; ctx.globalAlpha = 0.5;
+          ctx.lineWidth = Math.max(L.lw * 0.9, 3 * this.px);
+          ctx.setLineDash([L.lw * 2, L.lw]);
+          ctx.beginPath(); strokePath(ctx, offsetPath(L, laneOffset(L, L.evLane))); ctx.stroke();
+          ctx.setLineDash([]); ctx.globalAlpha = 1;
         }
         if (L.rule) {
           ctx.strokeStyle = L.rule.use === 'vip' ? vip : theme.amber;
@@ -247,7 +331,13 @@
           ctx.beginPath(); strokePath(ctx, offsetPath(L, laneOffset(L, L.rule.lane))); ctx.stroke();
           ctx.globalAlpha = 1;
         }
-        if (L.closed) {
+        if (L.closed && L.closed.soft) { // advice only: drivers asked to avoid it, road still open
+          if (L.closed.knownAt > sim.t) continue; // not sent yet
+          const w = L.lanes * L.lw;
+          ctx.strokeStyle = theme.amber; ctx.globalAlpha = 0.3; ctx.lineWidth = w;
+          ctx.beginPath(); strokePath(ctx, offsetPath(L, L.base + w / 2)); ctx.stroke();
+          ctx.globalAlpha = 1;
+        } else if (L.closed) {
           const w = L.lanes * L.lw;
           ctx.strokeStyle = theme.red;
           ctx.globalAlpha = 0.28;
@@ -273,17 +363,22 @@
       const { sim, theme } = this;
       const vip = theme.vip || VIP;
       let gcBest = null;
+      const closedBest = new Map(); // one label per closure, on its longest road section
       for (const L of sim.linkList) {
-        const rev = sim.links[`${L.to}>${L.from}`];
         const f = frameAt(L, L.length / 2), out = L.base + L.lanes * L.lw + 12 * this.px;
         const mx = f[0], my = f[1], nx = f[3], ny = -f[2];
-        if (L.closed && !(rev && rev.closed && L.from > L.to)) {
-          const both = rev && rev.closed;
-          this.pill(`CLOSED · ${L.closed.label}`, both ? mx : mx + nx * out, both ? my : my + ny * out, '#fff', theme.red, 'center');
+        if (L.closed && !(L.closed.soft && L.closed.knownAt > sim.t)) {
+          const b = closedBest.get(L.closed);
+          if (!b || L.length > b.length) closedBest.set(L.closed, L);
         }
         if (L.rule) this.pill(L.rule.use === 'vip' ? 'VIP lane' : L.rule.label.toLowerCase(), mx + nx * out, my + ny * out,
           L.rule.use === 'vip' ? '#fff' : '#1a1a19', L.rule.use === 'vip' ? vip : theme.amber, 'center');
         if (L.gc != null && L.kind !== 'entry' && L.kind !== 'exit' && (!gcBest || L.length > gcBest.length)) gcBest = L;
+      }
+      for (const [c, L] of closedBest) {
+        const f = frameAt(L, L.length / 2), rev = sim.links[`${L.to}>${L.from}`], both = rev && rev.closed === c;
+        const out = both ? 0 : L.base + L.lanes * L.lw + 12 * this.px;
+        this.pill(c.soft ? `AVOID · ${c.label}` : `CLOSED · ${c.label}`, f[0] + f[3] * out, f[1] - f[2] * out, c.soft ? '#1a1a19' : '#fff', c.soft ? theme.amber : theme.red, 'center');
       }
       if (gcBest) {
         const f = frameAt(gcBest, gcBest.length / 2), off = laneOffset(gcBest, gcBest.gc) - 14 * this.px;
@@ -297,7 +392,7 @@
       for (const j of sim.junctions) {
         if (j.level !== level) continue;
         j.approaches.forEach((L, i) => {
-          const st = j.sig.phase === i ? j.sig.state : 'R';
+          const st = j.sig.phase === i || (j.partner && j.partner[j.sig.phase] === i) ? j.sig.state : 'R';
           ctx.strokeStyle = st === 'G' ? theme.green : st === 'Y' ? theme.amber : theme.red;
           const f = frameAt(L, L.length - 1), w = L.lanes * L.lw, nx = f[3], ny = -f[2];
           ctx.beginPath();
@@ -356,6 +451,7 @@
       }
       const flash = Math.floor(now / 250) % 2 === 0;
       const halo = Math.max(11, 9 * this.px), ew = Math.max(sim.lw * 0.8, 2.2 * this.px), el = 5.5 * Math.max(1, ew / (sim.lw * 0.8));
+      for (const [cx, cy, , , veh] of evs) this.evAt.push({ veh, x: cx, y: cy });
       for (const [cx, cy, ux, uy, veh] of evs) {
         if (veh.vip) {
           const vip = this.theme.vip || VIP;
@@ -419,6 +515,16 @@
         this.pill(bl.label === 'illegal parking' ? 'illegal parking' : 'crash', x + 12 * px, y - 12 * px, '#fff', theme.red);
       }
       this.drawPlanLabels();
+      // What a signal did for an ambulance: switched to green for it (SAARTHI), or kept it at red.
+      for (const j of sim.junctions) {
+        if (j.evSwitch && sim.t - j.evSwitch.t < 12 && sim.evs.some(e => !e.vip)) this.pill('light changed for ambulance', j.x, j.y - 14 * px, '#fff', '#16a34a', 'center');
+      }
+      for (const a of this.evAt || []) {
+        const v = a.veh, L = v.link, j = L && sim.nodes[L.to];
+        if (v.vip || v.state !== 'link' || v.v > 0.5 || !j || !j.sig || L.free || L.length - v.pos > 90) continue;
+        const green = j.sig.state === 'G' && j.approaches[j.sig.phase] === L;
+        this.pill(green ? 'ambulance stuck in queue' : 'ambulance waiting at red', a.x + 10 * px, a.y - 14 * px, '#fff', theme.red);
+      }
       for (const j of sim.isects) {
         if (j.id === this.selected) {
           ctx.strokeStyle = theme.accent;
@@ -566,7 +672,8 @@
       ctx.font = '10px system-ui, sans-serif';
       ctx.fillStyle = theme.label2;
       ctx.textAlign = 'right';
-      ctx.fillText(`Roads © OpenStreetMap contributors · ${this.view.z > 1 ? `${this.view.z.toFixed(1)}× · ` : ''}scroll + Ctrl to zoom, drag to pan`, this.cw - 8, this.ch - 8);
+      const credit = window.SAARTHI_BASEMAP ? window.SAARTHI_BASEMAP.credit() : '';
+      ctx.fillText(`Roads © OpenStreetMap contributors${credit ? ` · ${credit}` : ''} · ${this.view.z > 1 ? `${this.view.z.toFixed(1)}× · ` : ''}scroll + Ctrl to zoom, drag to pan`, this.cw - 8, this.ch - 8);
       ctx.restore();
     }
   }

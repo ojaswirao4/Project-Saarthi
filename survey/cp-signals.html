@@ -1,0 +1,377 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Signal survey · Connaught Place</title>
+<style>
+  :root { --bg: #f6f7f9; --surface: #fff; --ink: #14181f; --muted: #5b6573; --line: #dde1e7; --accent: #1f5fbf; --good: #1d7a46; --bad: #b42318; --warn: #a15c00; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0f1216; --surface: #171b21; --ink: #e8ebef; --muted: #9aa4b1; --line: #2a313a; --accent: #6ea8ff; --good: #4cc38a; --bad: #ff7a6b; --warn: #f0b45a; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  p { margin: 6px 0; } .muted { color: var(--muted); }
+  .box { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12px; color: var(--muted); font-weight: 600; background: var(--bg); }
+  td small { display: block; color: var(--muted); }
+  .tag { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--line); margin-top: 3px; }
+  .tag.amb { color: var(--bad); border-color: var(--bad); }
+  a { color: var(--accent); }
+  .ch { display: flex; gap: 4px; flex-wrap: wrap; }
+  .ch label { border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px; cursor: pointer; white-space: nowrap; }
+  .ch input { margin: 0 4px 0 0; }
+  .ch label:has(input[value="yes"]:checked) { border-color: var(--good); color: var(--good); font-weight: 600; }
+  .ch label:has(input[value="no"]:checked) { border-color: var(--bad); color: var(--bad); font-weight: 600; }
+  .ch label:has(input[value="unsure"]:checked) { border-color: var(--warn); color: var(--warn); font-weight: 600; }
+  input[type=text], select { font: inherit; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); width: 100%; }
+  .meta { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+  .meta label { font-size: 12px; color: var(--muted); display: grid; gap: 3px; }
+  button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: #fff; cursor: pointer; }
+  #count { margin-left: 10px; color: var(--muted); }
+  @media (max-width: 760px) { .hide-sm { display: none; } table { font-size: 13px; } }
+</style></head>
+<body><main>
+  <h1>Traffic signal survey · Connaught Place, New Delhi</h1>
+  <p class="muted">For the SAARTHI digital twin. OpenStreetMap, which the twin's road network comes from, marks a signal at 11 of these 29 junctions. Mark each one as it is on the ground.</p>
+  <div class="box">
+    <p><b>How to check:</b> open <b>Street View</b> for the junction and look for signal heads (the light poles) on any arm. If the imagery is old or unclear, choose <i>Can't tell</i> and add a note; a site visit or the traffic police's list settles it.</p>
+    <p class="muted">Junctions on the ambulance route in the twin are listed first. Only roads in the model (tertiary and above) are listed: if a signal is where a smaller sector road meets a main road, write it in the note on the nearest row.</p>
+  </div>
+  <div class="box meta">
+    <label>Checked by<input type="text" id="by" placeholder="name, organisation"></label>
+    <label>Date<input type="text" id="on" placeholder="YYYY-MM-DD"></label>
+    <label>Method<select id="method"><option>Google Street View</option><option>Site visit</option><option>Traffic police list</option><option>Mixed</option></select></label>
+  </div>
+  <table>
+    <thead><tr><th>#</th><th>Junction</th><th class="hide-sm">Map</th><th>On the ground</th><th class="hide-sm">Note</th></tr></thead>
+    <tbody>
+      <tr data-i="0">
+        <td>1</td>
+        <td><b>Maharaja Ranjeet Singh Marg × Shivaji Flyover</b><small>Barakhamba Road, Tolstoy Marg</small><small>28.628903, 77.226473 · OSM: signal</small><span class="tag amb">ambulance route</span></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.628903,77.226473" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.628903,77.226473" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s0" value="yes">Signal</label>
+          <label><input type="radio" name="s0" value="no">No signal</label>
+          <label><input type="radio" name="s0" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n0" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="1">
+        <td>2</td>
+        <td><b>Outer Circle × Janpath</b><small>Outer Circle, Janpath, Radial Road 1</small><small>28.629888, 77.219626 · OSM: signal</small><span class="tag amb">ambulance route</span></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.629888,77.219626" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.629888,77.219626" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s1" value="yes">Signal</label>
+          <label><input type="radio" name="s1" value="no">No signal</label>
+          <label><input type="radio" name="s1" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n1" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="2">
+        <td>3</td>
+        <td><b>Outer Circle × Kasturba Gandhi Marg</b><small>Outer Circle, Kasturba Gandhi Marg</small><small>28.630083, 77.220917 · OSM: no signal</small><span class="tag amb">ambulance route</span></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.630083,77.220917" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.630083,77.220917" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s2" value="yes">Signal</label>
+          <label><input type="radio" name="s2" value="no">No signal</label>
+          <label><input type="radio" name="s2" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n2" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="3">
+        <td>4</td>
+        <td><b>Outer Circle × Sansad Marg</b><small>Outer Circle, Sansad Marg</small><small>28.630218, 77.217824 · OSM: no signal</small><span class="tag amb">ambulance route</span></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.630218,77.217824" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.630218,77.217824" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s3" value="yes">Signal</label>
+          <label><input type="radio" name="s3" value="no">No signal</label>
+          <label><input type="radio" name="s3" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n3" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="4">
+        <td>5</td>
+        <td><b>Outer Circle × Kasturba Gandhi Marg</b><small>Outer Circle, Kasturba Gandhi Marg</small><small>28.630292, 77.221405 · OSM: no signal</small><span class="tag amb">ambulance route</span></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.630292,77.221405" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.630292,77.221405" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s4" value="yes">Signal</label>
+          <label><input type="radio" name="s4" value="no">No signal</label>
+          <label><input type="radio" name="s4" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n4" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="5">
+        <td>6</td>
+        <td><b>Barakhamba Road × Outer Circle</b><small>Barakhamba Road, Outer Circle, Radial Road 7</small><small>28.631197, 77.22248 · OSM: signal</small><span class="tag amb">ambulance route</span></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.631197,77.22248" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.631197,77.22248" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s5" value="yes">Signal</label>
+          <label><input type="radio" name="s5" value="no">No signal</label>
+          <label><input type="radio" name="s5" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n5" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="6">
+        <td>7</td>
+        <td><b>Outer Circle × Baba Kharak Singh Marg</b><small>Outer Circle, Radial Road 2</small><small>28.631542, 77.216817 · OSM: signal</small><span class="tag amb">ambulance route</span></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.631542,77.216817" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.631542,77.216817" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s6" value="yes">Signal</label>
+          <label><input type="radio" name="s6" value="no">No signal</label>
+          <label><input type="radio" name="s6" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n6" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="7">
+        <td>8</td>
+        <td><b>Ashoka Road × Jai Singh Road</b><small>Ashoka Road, Jai Singh Road</small><small>28.624695, 77.210638 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.624695,77.210638" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.624695,77.210638" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s7" value="yes">Signal</label>
+          <label><input type="radio" name="s7" value="no">No signal</label>
+          <label><input type="radio" name="s7" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n7" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="8">
+        <td>9</td>
+        <td><b>Janpath</b><small>Janpath, Tolstoy Marg</small><small>28.626328, 77.21931 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.626328,77.21931" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.626328,77.21931" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s8" value="yes">Signal</label>
+          <label><input type="radio" name="s8" value="no">No signal</label>
+          <label><input type="radio" name="s8" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n8" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="9">
+        <td>10</td>
+        <td><b>Kasturba Gandhi Marg</b><small>Kasturba Gandhi Marg, Tolstoy Marg</small><small>28.626432, 77.223426 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.626432,77.223426" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.626432,77.223426" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s9" value="yes">Signal</label>
+          <label><input type="radio" name="s9" value="no">No signal</label>
+          <label><input type="radio" name="s9" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n9" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="10">
+        <td>11</td>
+        <td><b>Sansad Marg × Tolstoy Marg</b><small>Sansad Marg, Tolstoy Marg, Jai Singh Road</small><small>28.626931, 77.215227 · OSM: signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.626931,77.215227" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.626931,77.215227" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s10" value="yes">Signal</label>
+          <label><input type="radio" name="s10" value="no">No signal</label>
+          <label><input type="radio" name="s10" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n10" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="11">
+        <td>12</td>
+        <td><b>Sansad Marg</b><small>Sansad Marg, Tolstoy Marg</small><small>28.626995, 77.215646 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.626995,77.215646" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.626995,77.215646" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s11" value="yes">Signal</label>
+          <label><input type="radio" name="s11" value="no">No signal</label>
+          <label><input type="radio" name="s11" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n11" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="12">
+        <td>13</td>
+        <td><b>Inner Circle × Radial Road 1</b><small>Inner Circle, Radial Road 1</small><small>28.631635, 77.219581 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.631635,77.219581" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.631635,77.219581" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s12" value="yes">Signal</label>
+          <label><input type="radio" name="s12" value="no">No signal</label>
+          <label><input type="radio" name="s12" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n12" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="13">
+        <td>14</td>
+        <td><b>Inner Circle</b><small>Inner Circle</small><small>28.631869, 77.218972 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.631869,77.218972" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.631869,77.218972" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s13" value="yes">Signal</label>
+          <label><input type="radio" name="s13" value="no">No signal</label>
+          <label><input type="radio" name="s13" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n13" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="14">
+        <td>15</td>
+        <td><b>Inner Circle × Radial Road 7</b><small>Inner Circle, Radial Road 7</small><small>28.632168, 77.220757 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.632168,77.220757" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.632168,77.220757" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s14" value="yes">Signal</label>
+          <label><input type="radio" name="s14" value="no">No signal</label>
+          <label><input type="radio" name="s14" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n14" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="15">
+        <td>16</td>
+        <td><b>Inner Circle × Radial Road 2</b><small>Inner Circle, Radial Road 2</small><small>28.632258, 77.218575 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.632258,77.218575" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.632258,77.218575" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s15" value="yes">Signal</label>
+          <label><input type="radio" name="s15" value="no">No signal</label>
+          <label><input type="radio" name="s15" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n15" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="16">
+        <td>17</td>
+        <td><b>Radial Road 6 × Inner Circle</b><small>Radial Road 6, Inner Circle</small><small>28.633356, 77.220809 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.633356,77.220809" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.633356,77.220809" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s16" value="yes">Signal</label>
+          <label><input type="radio" name="s16" value="no">No signal</label>
+          <label><input type="radio" name="s16" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n16" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="17">
+        <td>18</td>
+        <td><b>Inner Circle × Radial Road 3</b><small>Inner Circle, Radial Road 3</small><small>28.633406, 77.218616 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.633406,77.218616" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.633406,77.218616" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s17" value="yes">Signal</label>
+          <label><input type="radio" name="s17" value="no">No signal</label>
+          <label><input type="radio" name="s17" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n17" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="18">
+        <td>19</td>
+        <td><b>Inner Circle × Radial Road 5</b><small>Inner Circle, Radial Road 5</small><small>28.633743, 77.220392 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.633743,77.220392" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.633743,77.220392" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s18" value="yes">Signal</label>
+          <label><input type="radio" name="s18" value="no">No signal</label>
+          <label><input type="radio" name="s18" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n18" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="19">
+        <td>20</td>
+        <td><b>Inner Circle × Radial Road 4</b><small>Inner Circle, Radial Road 4</small><small>28.633928, 77.219769 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.633928,77.219769" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.633928,77.219769" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s19" value="yes">Signal</label>
+          <label><input type="radio" name="s19" value="no">No signal</label>
+          <label><input type="radio" name="s19" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n19" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="20">
+        <td>21</td>
+        <td><b>Outer Circle × Radial Road 6</b><small>Outer Circle, Radial Road 6</small><small>28.634198, 77.222541 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.634198,77.222541" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.634198,77.222541" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s20" value="yes">Signal</label>
+          <label><input type="radio" name="s20" value="no">No signal</label>
+          <label><input type="radio" name="s20" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n20" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="21">
+        <td>22</td>
+        <td><b>Radial Road 3 × Panchkuian Road</b><small>Radial Road 3, Panchkuian Road, Outer Circle</small><small>28.634325, 77.217069 · OSM: signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.634325,77.217069" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.634325,77.217069" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s21" value="yes">Signal</label>
+          <label><input type="radio" name="s21" value="no">No signal</label>
+          <label><input type="radio" name="s21" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n21" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="22">
+        <td>23</td>
+        <td><b>Deen Dayal Upadhyay Road</b><small>Deen Dayal Upadhyay Road</small><small>28.635175, 77.227404 · OSM: signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.635175,77.227404" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.635175,77.227404" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s22" value="yes">Signal</label>
+          <label><input type="radio" name="s22" value="no">No signal</label>
+          <label><input type="radio" name="s22" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n22" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="23">
+        <td>24</td>
+        <td><b>Vivekanand Marg × Radial Road 5</b><small>Vivekanand Marg, Radial Road 5, Outer Circle</small><small>28.635243, 77.221479 · OSM: signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.635243,77.221479" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.635243,77.221479" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s23" value="yes">Signal</label>
+          <label><input type="radio" name="s23" value="no">No signal</label>
+          <label><input type="radio" name="s23" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n23" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="24">
+        <td>25</td>
+        <td><b>Outer Circle × Chelmsford Road</b><small>Outer Circle, Chelmsford Road</small><small>28.635257, 77.218006 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.635257,77.218006" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.635257,77.218006" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s24" value="yes">Signal</label>
+          <label><input type="radio" name="s24" value="no">No signal</label>
+          <label><input type="radio" name="s24" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n24" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="25">
+        <td>26</td>
+        <td><b>Outer Circle × Chelmsford Road</b><small>Outer Circle, Chelmsford Road</small><small>28.635586, 77.218866 · OSM: no signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.635586,77.218866" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.635586,77.218866" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s25" value="yes">Signal</label>
+          <label><input type="radio" name="s25" value="no">No signal</label>
+          <label><input type="radio" name="s25" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n25" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="26">
+        <td>27</td>
+        <td><b>Outer Circle × Radial Road 4</b><small>Outer Circle, Radial Road 4</small><small>28.635719, 77.219884 · OSM: signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.635719,77.219884" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.635719,77.219884" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s26" value="yes">Signal</label>
+          <label><input type="radio" name="s26" value="no">No signal</label>
+          <label><input type="radio" name="s26" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n26" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="27">
+        <td>28</td>
+        <td><b>Vivekanand Marg</b><small>Vivekanand Marg, Deen Dayal Upadhyay Road</small><small>28.637522, 77.223366 · OSM: signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.637522,77.223366" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.637522,77.223366" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s27" value="yes">Signal</label>
+          <label><input type="radio" name="s27" value="no">No signal</label>
+          <label><input type="radio" name="s27" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n27" value="" placeholder="optional"></td>
+      </tr>
+      <tr data-i="28">
+        <td>29</td>
+        <td><b>Panchkuian Road × Ramdwara Road</b><small>Bangla Sahib Road, Panchkuian Road</small><small>28.637524, 77.211568 · OSM: signal</small></td>
+        <td class="hide-sm"><a href="https://www.google.com/maps/@?api=1&amp;map_action=pano&amp;viewpoint=28.637524,77.211568" target="_blank" rel="noopener">Street View</a><br><a href="https://www.google.com/maps/search/?api=1&amp;query=28.637524,77.211568" target="_blank" rel="noopener">Google Maps</a></td>
+        <td><div class="ch">
+          <label><input type="radio" name="s28" value="yes">Signal</label>
+          <label><input type="radio" name="s28" value="no">No signal</label>
+          <label><input type="radio" name="s28" value="unsure">Can't tell</label></div></td>
+        <td class="hide-sm"><input type="text" name="n28" value="" placeholder="optional"></td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="margin-top:14px"><button id="save">Download cp.json</button><span id="count"></span></p>
+  <p class="muted">Put the downloaded file at <code>tools/signals/cp.json</code> in the project and run <code>node tools/osm-import.js cp</code>. Junctions marked <i>Signal</i> become signalised in the twin; <i>No signal</i> removes an OSM signal; <i>Can't tell</i> leaves OSM as it is.</p>
+</main>
+<script>
+  const ROWS = [{"name":"Maharaja Ranjeet Singh Marg × Shivaji Flyover","roads":"Barakhamba Road, Tolstoy Marg","lat":28.628903,"lon":77.226473},{"name":"Outer Circle × Janpath","roads":"Outer Circle, Janpath, Radial Road 1","lat":28.629888,"lon":77.219626},{"name":"Outer Circle × Kasturba Gandhi Marg","roads":"Outer Circle, Kasturba Gandhi Marg","lat":28.630083,"lon":77.220917},{"name":"Outer Circle × Sansad Marg","roads":"Outer Circle, Sansad Marg","lat":28.630218,"lon":77.217824},{"name":"Outer Circle × Kasturba Gandhi Marg","roads":"Outer Circle, Kasturba Gandhi Marg","lat":28.630292,"lon":77.221405},{"name":"Barakhamba Road × Outer Circle","roads":"Barakhamba Road, Outer Circle, Radial Road 7","lat":28.631197,"lon":77.22248},{"name":"Outer Circle × Baba Kharak Singh Marg","roads":"Outer Circle, Radial Road 2","lat":28.631542,"lon":77.216817},{"name":"Ashoka Road × Jai Singh Road","roads":"Ashoka Road, Jai Singh Road","lat":28.624695,"lon":77.210638},{"name":"Janpath","roads":"Janpath, Tolstoy Marg","lat":28.626328,"lon":77.21931},{"name":"Kasturba Gandhi Marg","roads":"Kasturba Gandhi Marg, Tolstoy Marg","lat":28.626432,"lon":77.223426},{"name":"Sansad Marg × Tolstoy Marg","roads":"Sansad Marg, Tolstoy Marg, Jai Singh Road","lat":28.626931,"lon":77.215227},{"name":"Sansad Marg","roads":"Sansad Marg, Tolstoy Marg","lat":28.626995,"lon":77.215646},{"name":"Inner Circle × Radial Road 1","roads":"Inner Circle, Radial Road 1","lat":28.631635,"lon":77.219581},{"name":"Inner Circle","roads":"Inner Circle","lat":28.631869,"lon":77.218972},{"name":"Inner Circle × Radial Road 7","roads":"Inner Circle, Radial Road 7","lat":28.632168,"lon":77.220757},{"name":"Inner Circle × Radial Road 2","roads":"Inner Circle, Radial Road 2","lat":28.632258,"lon":77.218575},{"name":"Radial Road 6 × Inner Circle","roads":"Radial Road 6, Inner Circle","lat":28.633356,"lon":77.220809},{"name":"Inner Circle × Radial Road 3","roads":"Inner Circle, Radial Road 3","lat":28.633406,"lon":77.218616},{"name":"Inner Circle × Radial Road 5","roads":"Inner Circle, Radial Road 5","lat":28.633743,"lon":77.220392},{"name":"Inner Circle × Radial Road 4","roads":"Inner Circle, Radial Road 4","lat":28.633928,"lon":77.219769},{"name":"Outer Circle × Radial Road 6","roads":"Outer Circle, Radial Road 6","lat":28.634198,"lon":77.222541},{"name":"Radial Road 3 × Panchkuian Road","roads":"Radial Road 3, Panchkuian Road, Outer Circle","lat":28.634325,"lon":77.217069},{"name":"Deen Dayal Upadhyay Road","roads":"Deen Dayal Upadhyay Road","lat":28.635175,"lon":77.227404},{"name":"Vivekanand Marg × Radial Road 5","roads":"Vivekanand Marg, Radial Road 5, Outer Circle","lat":28.635243,"lon":77.221479},{"name":"Outer Circle × Chelmsford Road","roads":"Outer Circle, Chelmsford Road","lat":28.635257,"lon":77.218006},{"name":"Outer Circle × Chelmsford Road","roads":"Outer Circle, Chelmsford Road","lat":28.635586,"lon":77.218866},{"name":"Outer Circle × Radial Road 4","roads":"Outer Circle, Radial Road 4","lat":28.635719,"lon":77.219884},{"name":"Vivekanand Marg","roads":"Vivekanand Marg, Deen Dayal Upadhyay Road","lat":28.637522,"lon":77.223366},{"name":"Panchkuian Road × Ramdwara Road","roads":"Bangla Sahib Road, Panchkuian Road","lat":28.637524,"lon":77.211568}];
+  const KEY = 'saarthi-survey-cp';
+  const $ = s => document.querySelector(s);
+  function read() {
+    return ROWS.map((r, i) => {
+      const v = (document.querySelector('input[name="s' + i + '"]:checked') || {}).value;
+      const note = (document.querySelector('input[name="n' + i + '"]') || {}).value || '';
+      return Object.assign({}, r, { signal: v === 'yes' ? true : v === 'no' ? false : null }, note ? { note } : {});
+    });
+  }
+  function count() { const p = read(); $('#count').textContent = p.filter(x => x.signal !== null).length + ' of ' + p.length + ' marked'; }
+  // keep progress in this browser until the file is downloaded
+  try {
+    const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
+    if (saved) {
+      ['by', 'on', 'method'].forEach(k => { if (saved[k]) $('#' + k).value = saved[k]; });
+      (saved.points || []).forEach((p, i) => {
+        if (p.signal !== null) { const r = document.querySelector('input[name="s' + i + '"][value="' + (p.signal ? 'yes' : 'no') + '"]'); if (r) r.checked = true; }
+        if (p.note) document.querySelector('input[name="n' + i + '"]').value = p.note;
+      });
+    }
+  } catch (e) {}
+  if (!$('#on').value) $('#on').value = new Date().toISOString().slice(0, 10);
+  function doc() { return { area: 'cp', surveyedOn: $('#on').value, by: $('#by').value, method: $('#method').value, points: read() }; }
+  document.addEventListener('change', () => { count(); try { localStorage.setItem(KEY, JSON.stringify(doc())); } catch (e) {} });
+  document.addEventListener('input', () => { try { localStorage.setItem(KEY, JSON.stringify(doc())); } catch (e) {} });
+  $('#save').addEventListener('click', () => {
+    const blob = new Blob([JSON.stringify(doc(), null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'cp.json'; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  count();
+</script>
+</body></html>

@@ -46,7 +46,11 @@ const AREAS = {
     // 6 AM 5–7, 9 AM 10–18, 10 AM 12–20, 1 PM 7–12 min. Free-flow already matched at 6 AM. In a continuous
     // 07:00–10:30 run the fixed twin's middle half of corridor trips is 8.3–13.3 min at 09:00 (was 0.43:
     // 7.4–9.2) and 9.5–19.2 at 10:00. The area tips sharply: at 0.56 it gridlocks by 10 AM (12–35 min).
-    demandScale: 0.52,
+    // Re-calibrated 2026-11-17 with 3 inferred signals (Lt Vijyant Thapar Marg x2, Maharaja Agrasen Marg): at 0.52 the
+    // fixed twin gridlocks from 09:30. At 0.42: 9 AM 10-15, 10 AM 11-13, 1 PM 7.4-10 min, no backlog; 6 AM 7-10 is
+    // above Google (the inferred signals run one all-day plan; real ones may run shorter cycles early morning).
+    demandScale: 0.42,
+    inferCrossings: true, // OSM maps 1 signal at the 11 crossings: infer them until the signal survey (survey/fco-signals.html)
 
   },
   s62: {
@@ -61,6 +65,20 @@ const AREAS = {
     // fixed twin's middle half of corridor trips is 8.9–18.3 min at 09:00 and keeps moving at 10:00
     // (~9900 trips/h finishing); at ×1.5 of this it collapses.
     demandScale: 0.97,
+    inferCrossings: true, // OSM maps no usable signal on the main crossings: infer them until the signal survey
+  },
+  s34: {
+    name: 'Sector 34, Noida', short: 'Sector 34 Noida',
+    center: [28.5820, 77.3620], half: [1100, 1000], // Sector 34 and its metro station (Noida Sector 34, 28.5803 N 77.3635 E)
+    inferT: true, // OSM maps no signals here; at-grade junctions of main roads are signalised
+    // Surbhi Hospital is inside the area, on Shaheed Captain Shashikant Sharma Marg, so the "exit nearest the
+    // hospital" rule picks a far edge. Fixed by entry and exit id instead: from Main Road Gijhor through the main
+    // crossing by the metro and down Shashikant Sharma Marg past the hospital.
+    ambulance: { from: /Gijhor/i, toHospital: /Surbhi/i },
+    ambulanceIds: { o: 'X8', d: 'X35' },
+    parking: /Shashikant/i, surge: /City Center/i,
+    corridorIds: { o: 'X34', d: 'X15' }, // Shashikant Sharma Marg (SW) → its underpass (NE), through the same crossing
+    demandScale: 0.7, // provisional: not yet calibrated to Google Maps times
   },
 };
 
@@ -255,6 +273,30 @@ function build(id, data) {
   }
   for (const pc of pieces) pc.len = polyLen(pc.pts);
 
+  // --- signals from a site survey (tools/signals/<area>.json). OSM under-maps signals in Indian cities, so
+  // each junction is checked on the ground or on street imagery: a point marked "signal" makes the junction
+  // nearest it (within 40 m) signalised; a point marked "no signal" removes an OSM signal there.
+  const sfile = path.join(__dirname, 'signals', `${id}.json`);
+  const survey = fs.existsSync(sfile) ? JSON.parse(fs.readFileSync(sfile, 'utf8')) : null;
+  const surveyLog = { added: 0, removed: 0, missed: [], points: [] };
+  if (survey) {
+    const crossings = [...V.values()].filter(v => !v.boundary && use.get(v.id) > 1);
+    for (const s of survey.points || []) {
+      if (s.signal !== true && s.signal !== false) continue; // not checked yet
+      const p = proj(s.lat, s.lon);
+      const near = crossings.map(v => ({ v, d: dist(v.p, p) })).filter(x => x.d <= 40).sort((a, b) => a.d - b.d);
+      if (!near.length) { surveyLog.missed.push(s.name || `${s.lat},${s.lon}`); continue; }
+      if (s.signal) {
+        for (const { v, d } of near) if (d <= near[0].d + 15) { v.signal = true; v.surveyed = true; } // all corners of a divided-road crossing
+        surveyLog.added++;
+        surveyLog.points.push({ name: s.name || `${s.lat},${s.lon}`, vs: near.filter(x => x.v.signal).map(x => x.v.id) });
+      } else {
+        for (const { v } of near) if (v.signal) { v.signal = false; v.surveyed = true; }
+        surveyLog.removed++;
+      }
+    }
+  }
+
   // --- cluster the OSM nodes of one physical junction
   const nb = new Map();
   for (const pc of pieces) for (const [x, y] of [[pc.a, pc.b], [pc.b, pc.a]]) { if (!nb.has(x)) nb.set(x, new Set()); nb.get(x).add(y); }
@@ -282,6 +324,16 @@ function build(id, data) {
     parent.set(rb, ra); members.set(ra, ms); members.delete(rb);
   }
 
+  // how many junction points each surveyed signal ended up as (a divided-road crossing should be one)
+  for (const sp of surveyLog.points) {
+    sp.parts = new Set(sp.vs.map(find)).size;
+    if (process.env.SURVEY_DEBUG && sp.parts > 1) {
+      const vs = new Set(sp.vs);
+      console.log('  split:', sp.name, sp.vs.length, 'vertices ->', sp.parts, 'points; pieces between them:',
+        pieces.filter(pc => vs.has(pc.a) || vs.has(pc.b)).map(pc => `${Math.round(pc.len)}m${wayInfo.get(pc.way).isLink ? ' link' : ''}${wayInfo.get(pc.way).layer ? ' L' + wayInfo.get(pc.way).layer : ''}${vs.has(pc.a) && vs.has(pc.b) ? ' inner' : ''}${linkEnd.has(pc.a) || linkEnd.has(pc.b) ? ' linkEnd' : ''}`).join(', '));
+    }
+  }
+
   // --- directed edges between clusters
   let E = [];
   for (const pc of pieces) {
@@ -305,6 +357,7 @@ function build(id, data) {
 
   // --- simplify: dissolve shape vertices, prune dead ends, repeat until stable
   const signalCluster = c => (members.get(c) || [c]).some(m => V.get(m).signal);
+  const surveyCluster = c => (members.get(c) || [c]).some(m => V.get(m).signal && V.get(m).surveyed);
   for (let pass = 0; pass < 20; pass++) {
     let changed = false;
     // prune edges not on any entry → exit path
@@ -372,7 +425,7 @@ function build(id, data) {
     const id = type === 'X' ? `X${++xN}` : type === 'J' ? `J${++jN}` : `P${++pN}`;
     idOf.set(v, id);
     const ms = members.get(v) || [v];
-    nodes.push({ id, type, x: +c[0].toFixed(1), y: +c[1].toFixed(1), signal: !!signalCluster(v), osmSignal: !!signalCluster(v), nin, nout,
+    nodes.push({ id, type, x: +c[0].toFixed(1), y: +c[1].toFixed(1), signal: !!signalCluster(v), osmSignal: !!signalCluster(v) && !surveyCluster(v), surveySignal: !!surveyCluster(v), nin, nout,
       spread: isBoundary(v) ? 0 : Math.round(diam(ms) / 2), _v: v });
   }
   const NB = new Map(nodes.map(n => [n._v, n]));
@@ -521,9 +574,10 @@ function build(id, data) {
   const hospitals = pois.filter(p => p.kind === 'hospital');
   const hosp = hospitals.filter(h => A.ambulance.toHospital.test(h.name)).sort((a, b) => dist(a.p, [W / 2, H / 2]) - dist(b.p, [W / 2, H / 2]))[0]
     || hospitals.sort((a, b) => dist(a.p, [W / 2, H / 2]) - dist(b.p, [W / 2, H / 2]))[0];
-  const ambFrom = pickExt(A.ambulance.from, true, false);
-  let ambTo = null;
-  if (hosp) {
+  const extById = id => externals.find(e => e.id === id) || (() => { throw new Error(`no external ${id}`); })();
+  const ambFrom = A.ambulanceIds ? extById(A.ambulanceIds.o) : pickExt(A.ambulance.from, true, false);
+  let ambTo = A.ambulanceIds ? extById(A.ambulanceIds.d) : null;
+  if (hosp && !ambTo) {
     const r = reach(links.find(L => L.from === ambFrom.id).id);
     ambTo = externals.filter(x => x.outLanes && x.zone !== ambFrom.zone && r.has(links.find(L => L.to === x.id).id))
       .sort((a, b) => dist([a.x, a.y], hosp.p) - dist([b.x, b.y], hosp.p))[0];
@@ -550,7 +604,8 @@ function build(id, data) {
     junctions: nodes.filter(n => n.type !== 'X').length,
     signalised: nodes.filter(n => n.type === 'J').length,
     osmSignals: nodes.filter(n => n.osmSignal).length,
-    inferredSignals: nodes.filter(n => n.type === 'J' && !n.osmSignal).length,
+    inferredSignals: nodes.filter(n => n.type === 'J' && !n.osmSignal && !n.surveySignal).length,
+    surveySignals: nodes.filter(n => n.surveySignal).length,
     priority: nodes.filter(n => n.type === 'P').length,
     uturns: uturnNodes,
     slipRoads: links.filter(L => L.kind === 'slip' || (L._e.isLink)).length,
@@ -570,15 +625,25 @@ function build(id, data) {
     nodes: nodes.map(({ _v, nin, nout, spread, ...n }) => n),
     links: links.map(({ _e, ...L }) => L),
     turns, externals, od, labels, stats,
+    inferCrossings: !!A.inferCrossings,
+    survey: survey ? { on: survey.surveyedOn || null, by: survey.by || null, method: survey.method || null, checked: (survey.points || []).filter(s => s.signal === true || s.signal === false).length } : null,
     hooks: {
       ambulance: { origin: ambFrom.id, dest: ambTo.id, label: `${ambFrom.road || ambFrom.name} → ${hosp ? hosp.name : ambTo.name}`, hospital: hosp ? hosp.name : null },
       parking: park ? park.id : null, parkingName: park ? (park.name || park.id) : null,
       surge: { origin: surge.id, label: surge.name },
       fault,
-      corridor: { o: ambFrom.id, d: ambTo.id, label: `${ambFrom.road || ambFrom.name} → ${ambTo.road || ambTo.name}` },
+      corridor: A.corridorIds ? corridorOf(externals, A.corridorIds)
+        : { o: ambFrom.id, d: ambTo.id, label: `${ambFrom.road || ambFrom.name} → ${ambTo.road || ambTo.name}` },
     },
   };
+  if (survey) Object.defineProperty(net, '_surveyLog', { value: surveyLog }); // printed, not written
   return net;
+}
+
+// A corridor fixed by entry and exit id (an area's `corridorIds`) instead of the ambulance route.
+function corridorOf(externals, { o, d }) {
+  const x = id => externals.find(e => e.id === id) || (() => { throw new Error(`corridorIds: no external ${id}`); })();
+  return { o, d, label: `${x(o).road || x(o).name} → ${x(d).road || x(d).name}` };
 }
 
 function write(net) {
@@ -604,6 +669,7 @@ function write(net) {
     const net = build(id, data);
     const file = write(net);
     console.log(`${net.name}: ${JSON.stringify(net.stats)}`);
+    if (net._surveyLog) console.log(`  survey: ${net._surveyLog.added} signal(s) added, ${net._surveyLog.removed} removed${net._surveyLog.missed.length ? `; no mapped junction within 40 m of: ${net._surveyLog.missed.join('; ')}` : ''}`);
     console.log(`  hooks: ${JSON.stringify(net.hooks)}`);
     console.log(`  wrote ${path.relative(process.cwd(), file)} (${(fs.statSync(file).size / 1024).toFixed(0)} KB)`);
   }
