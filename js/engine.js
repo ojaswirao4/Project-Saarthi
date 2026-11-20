@@ -24,6 +24,7 @@
   // (up to EV_REACH_ASKED away), then holds green until it has crossed.
   const EV_REACH = 350, EV_ASK = 500, EV_REACH_ASKED = 600;
   const GROUP_R = 80;    // m: signalised points this close may be one crossing, run by one signal
+  const OVR_MIN_GREEN = 5; // s: a manual switch never cuts the current green shorter than this
   const GROUP_SPAN = 70; // m: but one crossing is never wider than this (nearby crossings stay separate)
   // Points within `near` m of each other, grouped so that no group is wider than `span` (no chaining along a road).
   function clusterPoints(pts, near, span) {
@@ -1268,7 +1269,8 @@
         if (s.state === 'Y' && s.t >= AMBER) { s.state = 'R'; s.t = 0; }
         else if (s.state === 'R' && s.t >= ALL_RED) { s.phase = s.next; s.state = 'G'; s.t = 0; }
         else if (s.state === 'G' && this.stepN % 4 === 0) {
-          const d = decide(this, j);
+          if (j.ovr && this.t >= j.ovr.until) this.clearOverride(j, 'time up');
+          const d = j.ovr ? this.overrideDecide(j, decide) : decide(this, j);
           if (d && d.next >= 0 && d.next !== s.phase) {
             s.next = d.next; s.state = 'Y'; s.t = 0;
             j.lastGreenEnd[s.phase] = this.t;
@@ -1297,7 +1299,7 @@
       if (veh.type === 'ev' && veh.lane === this.gcOf(L) && this.evCleared(veh, j)) return false;
       // held for the ambulance, except whoever is ahead of it in its own lane: they go first and clear its way
       if (j.evHold > this.t && !veh.isEV && dist < 12 && !(j.evHoldL === L && veh.lane === j.evHoldLane)) return true;
-      if (j.sig && !L.free) {
+      if (j.sig && !L.free && !(this.ctrl(j).ovr && this.ctrl(j).ovr.mode === 'flash')) {
         const s = j.sig, mine = j.approaches[s.phase] === L || (!!j.partner && j.approaches[j.partner[s.phase]] === L);
         // A red-runner already close and moving carries on through the amber, the all-red and the first
         // couple of seconds of the next green (the same drivers in both twins).
@@ -2000,7 +2002,7 @@
       const p = ev && ev.plan && ev.plan.find(x => x.j === jId);
       if (!p || p.ok != null || p.rec) return false;
       p.ok = true; p.okAt = this.t; if (auto) p.auto = 'auto';
-      if (ev.story) this.tell(ev, auto ? `Light at ${p.name}: turned green for it (approved automatically)` : `Controller turned the light at ${p.name} green for it`, 'controller');
+      if (ev.story) this.tell(ev, auto ? `SAARTHI turned the light at ${p.name} green for it (automatic)` : `Controller turned the light at ${p.name} green for it`, 'controller');
       this.addLog(`${auto ? 'Approved automatically' : 'Controller'}: light at ${p.name} to green for the ambulance on ${p.road}`, 'sent', jId);
       return true;
     }
@@ -2111,7 +2113,7 @@
       this.tell(ev, `Ambulance reported: ${label}`);
       this.clearCorridor(ev);
       if (this.priorityApproval && this.mode === 'adaptive' && this.features.signalPriority) ev.plan = this.ambulancePlan(ev);
-      if (ev.plan && ev.plan.length) this.tell(ev, `${ev.plan.length} signal${ev.plan.length === 1 ? '' : 's'} on its route: SAARTHI will suggest each light change as it gets close`, 'saarthi');
+      if (ev.plan && ev.plan.length) this.tell(ev, `${ev.plan.length} signal${ev.plan.length === 1 ? '' : 's'} on its route: ${this.autoApprove ? 'SAARTHI turns each light green for it as it gets close' : 'SAARTHI will suggest each light change as it gets close'}`, 'saarthi');
       ev.evEntry = this.addEvent({ kind: 'ambulance', label: `Ambulance · ${label}`, arriveAt: null, tt: null, delay: null, ff: ev.ff, veh: ev });
       this.nodes[o].backlog.unshift(ev);
       this.evs.push(ev);
@@ -2127,7 +2129,7 @@
       this.tell(ev, `Ambulance reported: ${a.label}`);
       this.clearCorridor(ev);
       if (this.priorityApproval && this.mode === 'adaptive' && this.features.signalPriority) ev.plan = this.ambulancePlan(ev);
-      if (ev.plan && ev.plan.length) this.tell(ev, `${ev.plan.length} signal${ev.plan.length === 1 ? '' : 's'} on its route: SAARTHI will suggest each light change as it gets close`, 'saarthi');
+      if (ev.plan && ev.plan.length) this.tell(ev, `${ev.plan.length} signal${ev.plan.length === 1 ? '' : 's'} on its route: ${this.autoApprove ? 'SAARTHI turns each light green for it as it gets close' : 'SAARTHI will suggest each light change as it gets close'}`, 'saarthi');
       ev.evEntry = this.addEvent({ kind: 'ambulance', label: `Ambulance · ${a.label}`, arriveAt: null, tt: null, delay: null, ff: ev.ff, veh: ev });
       x.backlog.unshift(ev);
       this.evs.push(ev);
@@ -2313,6 +2315,48 @@
       });
       const r = x => (total ? +(x / total).toFixed(2) : 0);
       return { junction_id: j.id, approach: L.approach, lanes, turning: { L: r(turns.L), T: r(turns.T), R: r(turns.R) }, incident: !!L.blockage || j.boxBlocked };
+    }
+
+    // ---------------------------------------------------------- manual override (control console)
+    // The controller takes a signal over for a set time: hold green on one road, run the fixed plan, or switch it
+    // to flashing amber (signal off; drivers give way). Safety stays: a switch still runs amber and all-red, and
+    // the current green has run at least OVR_MIN_GREEN s. An ambulance with priority still gets its green.
+    // It returns to SAARTHI by itself when the time is up.
+    setOverride(j, mode, i, mins) {
+      const c = this.ctrl(j);
+      if (!c || !c.sig) return false;
+      const was = c.ovr;
+      c.ovr = { mode, i: mode === 'hold' ? i : null, from: this.t, until: this.t + mins * 60 };
+      this.addLog(`Manual override at ${this.jName(c)}: ${this.ovrText(c)} for ${mins} min${was ? ' (replaces the previous one)' : ''}`, 'sent', c.id);
+      return true;
+    }
+    extendOverride(j, mins) {
+      const c = this.ctrl(j);
+      if (!c || !c.ovr) return false;
+      c.ovr.until += mins * 60;
+      this.addLog(`Manual override at ${this.jName(c)} extended by ${mins} min, until ${fmtClock(c.ovr.until).slice(0, 5)}`, 'sent', c.id);
+      return true;
+    }
+    clearOverride(j, why) {
+      const c = this.ctrl(j);
+      if (!c || !c.ovr) return false;
+      c.ovr = null;
+      this.addLog(`Manual override at ${this.jName(c)} ended (${why || 'by the controller'}): back to SAARTHI`, 'sent', c.id);
+      return true;
+    }
+    ovrText(c) {
+      const o = c.ovr;
+      if (!o) return '';
+      return o.mode === 'hold' ? `green held for ${(n => (!n ? 'an unnamed road' : /^(motorway|trunk|primary|secondary|tertiary) road /.test(n) ? `an unnamed ${n.split(' ')[0]} road` : n))(c.approaches[o.i].name)}` : o.mode === 'fixed' ? 'fixed signal plan' : 'flashing amber (signal off, drivers give way)';
+    }
+    overrideDecide(j, decide) {
+      const o = j.ovr;
+      if (o.mode === 'flash') return null;
+      // an ambulance (or VIP convoy) with priority: SAARTHI gives it its green as usual
+      if ((this.mode === 'adaptive' && this.features.signalPriority ? this.evApproach(j) : this.vipApproach(j)) >= 0) return decide(this, j);
+      if (o.mode === 'fixed') return fixedDecide(this, j);
+      if (canon(j, j.sig.phase) !== canon(j, o.i) && j.sig.t >= OVR_MIN_GREEN) return { next: o.i, reason: 'manual' };
+      return null;
     }
 
     approachInfo(j) {

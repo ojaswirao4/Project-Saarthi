@@ -152,6 +152,7 @@
       this.drawOverlays(now);
       if (sim.net.schematic) this.drawLabels();
       else this.drawRealLabels();
+      this.drawPlanLabels(); // green corridor, closures, VIP lanes: on top of the map's own labels
     }
 
     world() {
@@ -391,8 +392,10 @@
       ctx.lineWidth = Math.max(2.4, 2.2 * this.px);
       for (const j of sim.junctions) {
         if (j.level !== level) continue;
+        const flash = j.ovr && j.ovr.mode === 'flash', on = Math.floor(performance.now() / 600) % 2 === 0;
         j.approaches.forEach((L, i) => {
-          const st = j.sig.phase === i || (j.partner && j.partner[j.sig.phase] === i) ? j.sig.state : 'R';
+          if (flash && !on) return; // flashing amber: the signal is off, drivers give way
+          const st = flash ? 'Y' : j.sig.phase === i || (j.partner && j.partner[j.sig.phase] === i) ? j.sig.state : 'R';
           ctx.strokeStyle = st === 'G' ? theme.green : st === 'Y' ? theme.amber : theme.red;
           const f = frameAt(L, L.length - 1), w = L.lanes * L.lw, nx = f[3], ny = -f[2];
           ctx.beginPath();
@@ -514,7 +517,6 @@
         ctx.setLineDash([]);
         this.pill(bl.label === 'illegal parking' ? 'illegal parking' : 'crash', x + 12 * px, y - 12 * px, '#fff', theme.red);
       }
-      this.drawPlanLabels();
       // What a signal did for an ambulance: switched to green for it (SAARTHI), or kept it at red.
       for (const j of sim.junctions) {
         if (j.evSwitch && sim.t - j.evSwitch.t < 12 && sim.evs.some(e => !e.vip)) this.pill('light changed for ambulance', j.x, j.y - 14 * px, '#fff', '#16a34a', 'center');

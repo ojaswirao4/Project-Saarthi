@@ -148,3 +148,43 @@
 .sig-list .bad { color: var(--status-crit); }
 .sig-list .wait { color: var(--status-warn); font-weight: 600; }
 .sig-auto { display: flex; gap: 6px; align-items: center; font-size: 12px; color: var(--muted); margin: 4px 0; }
+
+/* Needs attention: one list, most urgent first */
+.qn { display: inline-block; min-width: 18px; padding: 0 6px; border-radius: 9px; font-size: 11px; font-weight: 700; text-align: center; background: var(--surface-2, rgba(127,127,127,.15)); color: var(--muted); }
+.qn:empty { display: none; }
+.qn.hot { background: var(--status-crit, #c0392b); color: #fff; }
+#p-queue h2 { display: flex; align-items: center; gap: 8px; }
+.clist li.q { border-left: 4px solid var(--line-2, rgba(127,127,127,.4)); }
+.clist li.q.sev1 { border-left-color: var(--status-crit, #c0392b); }
+.clist li.q.sev2 { border-left-color: var(--status-warn, #b7791f); }
+.clist li.q .sevt { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.clist li.q.sev1 .sevt { color: var(--status-crit, #c0392b); }
+.clist li.q.sev2 .sevt { color: var(--status-warn, #b7791f); }
+
+/* Junction panel: manual override */
+#p-junc h2 { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+#p-junc .x { border: 0; background: none; color: var(--muted); font-size: 18px; cursor: pointer; padding: 0 4px; }
+.jstat { margin: 4px 0 8px; font-size: 13px; }
+.jt { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.jt th { text-align: left; font-weight: 600; color: var(--muted); font-size: 11px; padding: 3px 4px; border-bottom: 1px solid var(--line); }
+.jt td { padding: 4px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.jt .num { text-align: right; white-space: nowrap; }
+.jt .sub2 { display: block; font-size: 11px; color: var(--muted); }
+.jt tr.held td:first-child { font-weight: 700; }
+.jt .sig { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; background: var(--status-crit, #c0392b); }
+.jt .sig.G { background: var(--status-good, #2e9e5b); }
+.jt .sig.Y { background: var(--status-warn, #b7791f); }
+.jctl { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin: 8px 0 4px; font-size: 12.5px; }
+.jctl select { font: inherit; padding: 3px 6px; }
+
+/* Action log tab */
+.alog-h { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 10px; }
+.alog-h h4 { margin: 0 0 4px; }
+.alog { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--surface); border: 1px solid var(--line); }
+.alog th { text-align: left; font-size: 11.5px; color: var(--muted); font-weight: 600; padding: 6px 8px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--surface); }
+.alog td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.alog td:first-child { font-family: var(--mono); white-space: nowrap; }
+.alog .num { text-align: right; white-space: nowrap; }
+.alog .empty { color: var(--muted); text-align: center; padding: 18px; }
+.cbar .cfield input { font: inherit; padding: 3px 6px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+@media (max-width: 760px) { .alog th:nth-child(3), .alog td:nth-child(3), .alog th:nth-child(2), .alog td:nth-child(2) { display: none; } }

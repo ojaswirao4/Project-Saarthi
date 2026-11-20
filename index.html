@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/site.css">
   <link rel="stylesheet" href="css/console.css">
   <script>
-    try { const t = localStorage.getItem('saarthi-theme'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+    try { const t = localStorage.getItem('saarthi-theme-v2'); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
   </script>
 </head>
 <body>
@@ -27,6 +27,7 @@
       <a href="#problem">Problem</a>
       <a href="#approach">Approach</a>
       <a href="#twin">Live twin</a>
+      <a href="#analysis">Analysis</a>
       <a href="#console">Control console</a>
       <a href="#results">Results</a>
       <a href="#architecture">Architecture</a>
@@ -191,7 +192,7 @@
         </div>
         <div class="group">
           <span class="lbl">Speed</span>
-          <div class="seg" id="seg-speed"><button data-v="1">1×</button><button data-v="5" class="on">5×</button><button data-v="15">15×</button><button data-v="60">60×</button></div>
+          <div class="seg" id="seg-speed"><button data-v="1" class="on">1×</button><button data-v="15">15×</button></div>
         </div>
         <div class="group">
           <label class="lbl" for="sel-start">Start</label>
@@ -201,11 +202,6 @@
             <option value="18">18:00 · evening peak</option>
             <option value="22">22:00 · night</option>
           </select>
-        </div>
-        <div class="group grow">
-          <label class="lbl" for="rng-demand">Demand</label>
-          <input type="range" id="rng-demand" min="0.6" max="1.4" step="0.05" value="1">
-          <output id="out-demand">100%</output>
         </div>
         <div class="group">
           <span class="lbl">View</span>
@@ -230,7 +226,7 @@
         <button class="btn btn-sm" id="scen-clear">Back to a normal day</button>
       </div>
 
-      <div class="scen">
+      <div class="scen single">
         <div class="panel">
           <h4>Inject an event <span class="hint">hits both twins at once · keys A, P, E, C</span></h4>
           <div class="scen-btns">
@@ -240,39 +236,36 @@
             <button class="btn ev" id="ev-cam"><span class="ev-ico">📷</span>Camera fault<small>FC-03 for 5 min</small></button>
           </div>
         </div>
-        <div class="panel">
-          <h4>SAARTHI layers <span class="hint">switch off to see what each adds</span></h4>
-          <div class="toggles">
-            <label class="tog gc-tog"><input type="checkbox" data-f="greenCorridor" checked><span>Green corridor lane<small>on the main ambulance route a lane the city has built; on any other route to any hospital, the median lane is cleared for the ambulance when it is dispatched and opens again once it has passed</small><small class="gc-note" id="gc-note"></small></span></label>
-            <label class="tog"><input type="checkbox" data-f="signalPriority" checked><span>Smart signal priority<small>SAARTHI suggests changing the lights on the ambulance's route; the controller approves, and each approved signal turns green before it gets there (works with or without the lane)</small></span></label>
-            <label class="tog"><input type="checkbox" data-f="metering" checked><span>Perimeter metering<small>schematic loop only: on a real map it would just hold traffic at the map's edge</small></span></label>
-            <label class="tog"><input type="checkbox" data-f="vms" checked><span>VMS / navigation diversions</span></label>
-            <label class="tog"><input type="checkbox" data-f="enforcement" checked><span>Vision enforcement</span></label>
-            <label class="tog"><input type="checkbox" data-f="shaping" checked><span>Departure advice (shape demand)</span></label>
-            <label class="tog"><input type="checkbox" data-f="mergeControl" checked><span>Flyover-slip merge control<small>real maps: where a flyover slip gives way, the road with the longer queue goes first</small></span></label>
-          </div>
-        </div>
       </div>
 
-      <div class="panel amb" id="amb" hidden aria-live="polite"></div>
+      <div class="legend" id="legend"></div>
 
       <div class="twins view-split" id="twins">
         <article class="pane" id="pane-fixed">
-          <header class="pane-h">
-            <div><span class="swatch fixed"></span><strong>Fixed-timer baseline</strong><span class="pane-sub">Webster-tuned plan, no sensing</span></div>
-            <div class="chips" id="chips-fixed"></div>
-          </header>
+          <div class="pane-title"><span class="swatch fixed"></span><strong>Fixed-timer baseline</strong></div>
+          <div class="pane-top">
+            <header class="pane-h">
+              <div><span class="pane-sub">Webster-tuned plan, no sensing</span></div>
+              <div class="chips" id="chips-fixed"></div>
+            </header>
+            <div class="amb-slot" id="amb-slot-fixed" hidden></div>
+          </div>
           <div class="cv-wrap"><canvas id="cv-fixed" aria-label="Fixed-timer twin map"></canvas></div>
         </article>
         <article class="pane" id="pane-smart">
-          <header class="pane-h">
-            <div><span class="swatch smart"></span><strong>SAARTHI adaptive</strong><span class="pane-sub">sense · predict · act · enforce · shape</span></div>
-            <div class="chips" id="chips-smart"></div>
-          </header>
+          <div class="pane-title"><span class="swatch smart"></span><strong>SAARTHI adaptive</strong></div>
+          <div class="pane-top">
+            <header class="pane-h">
+              <div><span class="pane-sub">sense · predict · act · enforce · shape</span></div>
+              <div class="chips" id="chips-smart"></div>
+            </header>
+            <div class="amb-slot" id="amb-slot-smart" hidden></div>
+          </div>
           <div class="cv-wrap"><canvas id="cv-smart" aria-label="SAARTHI twin map"></canvas></div>
         </article>
       </div>
-      <div class="legend" id="legend"></div>
+
+      <div class="panel amb" id="amb" hidden aria-live="polite"></div>
 
       <div class="panel flush stopwatch">
         <table class="sw" aria-label="Event stopwatch: fixed timers vs SAARTHI">
@@ -281,6 +274,40 @@
         </table>
       </div>
 
+      <div class="to-analysis">
+        <div class="headline" id="headline-twin">Warming up the twin…</div>
+        <a href="#analysis" class="btn btn-primary btn-sm">See the full analysis <span aria-hidden="true">→</span></a>
+      </div>
+
+      <div class="bottom">
+        <div class="panel">
+          <h4>Junction inspector</h4>
+          <div class="seg" id="seg-junction"></div>
+          <table class="insp">
+            <thead><tr><th>Approach</th><th class="num">Fixed</th><th class="num">SAARTHI</th></tr></thead>
+            <tbody id="insp-body"></tbody>
+          </table>
+        </div>
+        <div class="panel">
+          <h4>Control brain &amp; incident log</h4>
+          <ol class="log" id="log"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================ ANALYSIS -->
+<section class="section alt" id="analysis">
+  <div class="wrap wide">
+    <div class="section-head reveal">
+      <div class="eyebrow">04 · Analysis</div>
+      <h2>How the two control systems compare.</h2>
+      <p class="lead">Two views of the same comparison: the live twin above, measured as it runs, and a full morning peak replayed in your browser when the page opens.</p>
+    </div>
+
+    <h3 class="an-h">The live twin, right now <span class="hint">rolling 15 min of the twin in section 03</span></h3>
+    <div class="lab an-live">
       <div class="headline" id="headline">Warming up the twin…</div>
       <div class="kpi-grid">
         <div class="panel flush">
@@ -306,32 +333,49 @@
           </figure>
         </div>
       </div>
+    </div>
 
-      <div class="bottom">
-        <div class="panel">
-          <h4>Junction inspector</h4>
-          <div class="seg" id="seg-junction"></div>
-          <table class="insp">
-            <thead><tr><th>Approach</th><th class="num">Fixed</th><th class="num">SAARTHI</th></tr></thead>
-            <tbody id="insp-body"></tbody>
-          </table>
-          <div class="edge-h">Edge → centre message (MQTT) for <strong id="edge-name">—</strong></div>
-          <pre class="edge" id="edge-json"></pre>
-        </div>
-        <div class="panel">
-          <h4>Control brain &amp; incident log</h4>
-          <ol class="log" id="log"></ol>
-        </div>
-      </div>
+    <h3 class="an-h">A full morning peak <span class="hint">08:00–10:30, identical traffic, an ambulance at 09:10 and illegal parking at 09:30, computed in your browser</span></h3>
+    <div class="bench-run reveal" id="bench-run">
+      <div class="bench-bar"><div class="bench-fill" id="bench-fill"></div></div>
+      <div class="bench-status" id="bench-status">Preparing benchmark…</div>
+    </div>
+    <div class="bench-cards" id="bench-cards"></div>
+    <div class="bench-charts chart-only reveal">
+      <figure class="chart panel">
+        <figcaption>95th-percentile trip time through the peak <span class="hint">minutes, rolling 15 min</span></figcaption>
+        <div class="chart-legend"><span><i class="fixed"></i>Fixed timers</span><span><i class="smart"></i>SAARTHI</span></div>
+        <div class="chart-box tall"><canvas id="bench-p95"></canvas><div class="tip" hidden></div></div>
+      </figure>
+    </div>
+
+    <h3 class="an-h mo-h">A simulated month <span class="hint">22 working days, 08:30–09:30 peak each day, computed offline</span></h3>
+    <div class="mo-bar">
+      <div class="seg" id="mo-area"></div>
+      <span class="mo-note">Same calibrated weekday traffic every day. Each day changes who travels when, and the incidents: an ambulance every day, illegal parking on some days. No real day-to-day or seasonal data (festivals, rain, holidays) is used.</span>
+    </div>
+    <div class="bench-cards" id="mo-cards"></div>
+    <p class="mo-sum" id="mo-sum"></p>
+    <div class="bench-charts mo-charts">
+      <figure class="chart panel">
+        <figcaption>Average trip time, day by day <span class="hint">minutes, 08:30–09:30 peak</span></figcaption>
+        <div class="chart-legend"><span><i class="fixed"></i>Fixed timers</span><span><i class="smart"></i>SAARTHI</span></div>
+        <div class="chart-box"><canvas id="mo-avg"></canvas><div class="tip" hidden></div></div>
+      </figure>
+      <figure class="chart panel">
+        <figcaption>Ambulance delay, day by day <span class="hint">minutes lost to traffic and red lights</span></figcaption>
+        <div class="chart-legend"><span><i class="fixed"></i>Fixed timers</span><span><i class="smart"></i>SAARTHI</span></div>
+        <div class="chart-box"><canvas id="mo-ev"></canvas><div class="tip" hidden></div></div>
+      </figure>
     </div>
   </div>
 </section>
 
 <!-- ============================================================ CONTROL CONSOLE -->
-<section class="section alt" id="console">
+<section class="section" id="console">
   <div class="wrap">
     <div class="section-head reveal">
-      <div class="eyebrow">04 · Control console</div>
+      <div class="eyebrow">05 · Control console</div>
       <h2>The traffic controller's screen.</h2>
       <p class="lead">One live SAARTHI twin of a real area, on the real map. Log a road closure, a crash, an ambulance or an event crowd. SAARTHI works out who is heading that way and the way round for each direction, and drafts the message travellers get on the SAARTHI app. Nothing reaches drivers until the controller sends it; each incident then shows what the advisory actually did. For something known in advance (a protest, a VIP movement, a big event), the <b>Plan ahead</b> tab rehearses it first and schedules the recommended plan.</p>
     </div>
@@ -340,7 +384,8 @@
     <div class="console" id="console-app">
       <header class="cbar">
         <div class="cbar-title"><b>SAARTHI</b> <span>Control console</span></div>
-        <div class="seg ctabs" id="c-tabs" role="tablist"><button data-v="live" class="on" role="tab">Live</button><button data-v="plan" role="tab">Plan ahead</button></div>
+        <div class="seg ctabs" id="c-tabs" role="tablist"><button data-v="live" class="on" role="tab">Live</button><button data-v="plan" role="tab">Plan ahead</button><button data-v="log" role="tab">Action log <span class="qn" id="c-actn"></span></button></div>
+        <label class="cfield">On duty <input id="c-op" placeholder="controller's name" size="14" autocomplete="off"></label>
         <label class="cfield">Area <select id="c-area"></select></label>
         <div class="cclock"><span class="clive">Live</span><span id="c-clock">--:--:--</span><small id="c-load"></small></div>
         <div class="cstats"><span title="Vehicles on the roads of this area right now"><b id="c-veh">—</b> vehicles</span><span title="Vehicles standing still right now: waiting at red lights or in a queue, plus any waiting to enter the map at its edges"><b id="c-queued">—</b> stopped</span></div>
@@ -357,6 +402,13 @@
         </div>
       
         <aside class="cside">
+          <div class="cpanel" id="p-queue">
+            <h2>Needs attention <span class="qn" id="c-qn"></span></h2>
+            <ol class="clist" id="c-queue"></ol>
+          </div>
+
+          <div class="cpanel" id="p-junc" hidden></div>
+
           <div class="cpanel" id="p-new">
             <h2>Log an incident</h2>
             <div class="ctypes" role="tablist">
@@ -404,6 +456,13 @@
             <ol class="clist" id="c-list"><li class="empty">None logged.</li></ol>
           </div>
         </aside>
+      </div>
+      <div class="cplan clogtab" id="c-actions" hidden>
+        <div class="alog-h">
+          <div><h4>Action log</h4><p class="wi-blurb">Every decision taken in this console: what SAARTHI suggested, what the controller on duty chose, and how long after the alert. Kept for this session; download it before closing the page.</p></div>
+          <button class="btn btn-sm" type="button" id="c-csv">Download CSV</button>
+        </div>
+        <table class="alog"><thead><tr><th>Time</th><th>On duty</th><th>Area</th><th>About</th><th>SAARTHI suggested</th><th>Controller chose</th><th class="num">Response</th></tr></thead><tbody id="c-alog"></tbody></table>
       </div>
       <div class="cplan" id="c-plan" hidden>
       <div class="wi">
@@ -476,24 +535,14 @@
 </section>
 
 <!-- ============================================================ RESULTS -->
-<section class="section" id="results">
+<section class="section alt" id="results">
   <div class="wrap">
     <div class="section-head reveal">
-      <div class="eyebrow">05 · Results</div>
+      <div class="eyebrow">06 · Results</div>
       <h2>A full morning peak, replayed in your browser.</h2>
-      <p class="lead">08:00–10:30 on identical traffic, with an ambulance dispatched at 09:10 and illegal parking at 09:30. Nothing here is pre-baked: the morning-peak numbers below are computed when you open this page. The real-map comparison at the end is measured offline.</p>
+      <p class="lead">08:00–10:30 on identical traffic, with an ambulance dispatched at 09:10 and illegal parking at 09:30. The morning-peak run in section 04 (Analysis) is computed when you open this page, and scored here against the deck's targets. The real-map comparison at the end is measured offline.</p>
     </div>
-    <div class="bench-run reveal" id="bench-run">
-      <div class="bench-bar"><div class="bench-fill" id="bench-fill"></div></div>
-      <div class="bench-status" id="bench-status">Preparing benchmark…</div>
-    </div>
-    <div class="bench-cards" id="bench-cards"></div>
-    <div class="bench-charts reveal">
-      <figure class="chart panel">
-        <figcaption>95th-percentile trip time through the peak <span class="hint">minutes, rolling 15 min</span></figcaption>
-        <div class="chart-legend"><span><i class="fixed"></i>Fixed timers</span><span><i class="smart"></i>SAARTHI</span></div>
-        <div class="chart-box tall"><canvas id="bench-p95"></canvas><div class="tip" hidden></div></div>
-      </figure>
+    <div class="bench-charts targets-only reveal">
       <div class="panel flush">
         <table class="targets" aria-label="Deck targets versus twin results">
           <thead><tr><th>Deck target (slide 11)</th><th class="num">Twin result</th><th class="num">Status</th></tr></thead>
@@ -513,18 +562,37 @@
         </tbody>
       </table>
     </div>
-    <p class="fine reveal">Why the real maps gain less: the schematic loop is four signalised junctions running right at capacity, where retiming signals matters most. On a real map SAARTHI can only retime the junctions where the twin runs a signal; the rest are give-way junctions, so its gain follows how many signals it runs. On the Film City corridor, which has almost no signals, SAARTHI's small lead comes from managing the merges where flyover slip roads give way. Sector 62's slow 95th-percentile trips come from one overloaded entry, the trunk road from the north-east, which jams the same way under both systems. After about 9:30 the twin is probably more congested than the real Sector 62 and Film City corridor (judged against Google Maps times), so read late-morning minutes there as an upper bound. Each real-map run takes minutes, so this table is measured offline (5 traffic seeds, 08:00–12:00, October–November 2026) rather than in your browser.</p>
   </div>
 </section>
 
 <!-- ============================================================ ARCHITECTURE -->
-<section class="section alt" id="architecture">
+<section class="section" id="architecture">
   <div class="wrap">
     <div class="section-head reveal">
-      <div class="eyebrow">06 · Architecture</div>
+      <div class="eyebrow">07 · Architecture</div>
       <h2>Six cooperating layers, each independently upgradeable.</h2>
       <p class="lead">A software and edge-compute layer that rides on cameras and controllers Noida largely already owns.</p>
     </div>
+    <div class="arch-sl reveal">
+      <h3>The SAARTHI layers</h3>
+      <p class="lead">What SAARTHI does, and which of the system layers below each part runs in. All of them run in the live twin (section 03).</p>
+      <div class="panel flush">
+        <table class="sl">
+          <thead><tr><th>SAARTHI layer</th><th>What it does</th><th>Runs in</th><th>In the twin</th></tr></thead>
+          <tbody>
+            <tr><td><b>Adaptive signal control</b><span class="sub2">always on</span></td><td>Gives green by the actual queues and avoids sending cars into a road that is already full, within hard minimum / maximum green and anti-starvation limits.</td><td>4 Control brain</td><td><span class="tag on">live</span></td></tr>
+            <tr><td><b>Green corridor lane</b></td><td>A lane only ambulances use: built on the main ambulance route, and the median lane cleared on any other route to a hospital while the ambulance passes.</td><td>5 Actuation · 4 Control brain</td><td><span class="tag on">live</span></td></tr>
+            <tr><td><b>Smart signal priority</b></td><td>As an ambulance nears a red light, SAARTHI suggests turning it green; the controller approves (or sets it to automatic).</td><td>4 Control brain · 6 Command centre</td><td><span class="tag on">live</span></td></tr>
+            <tr><td><b>VMS / navigation diversions</b></td><td>Recommends a clearly faster route when there is one, on message boards and navigation apps.</td><td>5 Actuation · 3 Twin (route times)</td><td><span class="tag on">live</span></td></tr>
+            <tr><td><b>Vision enforcement</b></td><td>Cameras spot illegal parking, crashes and blocked junctions in seconds and alert towing and marshals; drivers keep junctions clear.</td><td>2 Edge perception · 6 Command centre</td><td><span class="tag on">live</span></td></tr>
+            <tr><td><b>Departure advice</b></td><td>When the forecast says the corridor will fill within 30 minutes, advises some commuters to leave 15 minutes later.</td><td>3 Twin (forecast) · 6 Integration</td><td><span class="tag on">live</span></td></tr>
+            <tr><td><b>Flyover-slip merge control</b></td><td>Where a flyover slip road joins a main road, the side with the longer queue goes first.</td><td>4 Control brain · 5 Actuation</td><td><span class="tag on">real maps</span></td></tr>
+            <tr><td><b>Perimeter metering</b></td><td>Holds traffic at the entries when the area is filling up, so it does not jam inside.</td><td>5 Actuation</td><td><span class="tag">schematic loop only</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="layers">
       <div class="layer reveal"><span class="ln">1</span><div><h3>Sensing</h3><p>Reused CCTV/ANPR + new edge cameras, floating-car data, optional radar.</p></div><span class="tag">field</span></div>
       <div class="layer reveal"><span class="ln">2</span><div><h3>Edge perception</h3><p>YOLOv11 detection + BoT-SORT tracking + PCU density on Jetson Orin. &lt;20 ms per frame, only KB/s of metadata leaves the pole.</p></div><span class="tag on">simulated here</span></div>
@@ -537,10 +605,10 @@
 </section>
 
 <!-- ============================================================ ROLLOUT -->
-<section class="section" id="rollout">
+<section class="section alt" id="rollout">
   <div class="wrap">
     <div class="section-head reveal">
-      <div class="eyebrow">07 · Rollout</div>
+      <div class="eyebrow">08 · Rollout</div>
       <h2>Phased by risk, not budget.</h2>
       <p class="lead">Every phase must pass its gate before the next begins.</p>
     </div>
@@ -556,24 +624,8 @@
 </section>
 
 <!-- ============================================================ EVIDENCE -->
-<section class="section alt" id="evidence">
+<section class="section" id="evidence">
   <div class="wrap">
-    <div class="section-head reveal">
-      <div class="eyebrow">08 · Why now</div>
-      <h2>Standing on results already delivered elsewhere.</h2>
-    </div>
-    <div class="panel flush reveal">
-      <table class="evid">
-        <thead><tr><th>System</th><th>Where</th><th>Approach</th><th>Reported result</th></tr></thead>
-        <tbody>
-          <tr><td><b>Surtrac</b> (CMU)</td><td>Pittsburgh</td><td>Decentralised schedule-driven control</td><td>−25% travel time · −40% wait · −20% emissions</td></tr>
-          <tr><td><b>Google Green Light</b></td><td>Bengaluru, Kolkata</td><td>Cloud AI over floating-car data</td><td>up to −30% stops · −10% emissions</td></tr>
-          <tr><td><b>BATCS</b> (C-DAC CoSiCoSt)</td><td>Bengaluru</td><td>Camera-fed adaptive, India-tuned</td><td>−15–33% travel time · +20% throughput</td></tr>
-          <tr><td><b>Multi-agent RL</b></td><td>Sim / pilots</td><td>Deep reinforcement learning</td><td>−34–52% delay vs fixed-time</td></tr>
-          <tr><td><b>Edge YOLO + tracking</b></td><td>Intersections</td><td>YOLOv11 + BoT-SORT on Jetson</td><td>&gt;90% mAP · &lt;20 ms/frame · 8+ cameras</td></tr>
-        </tbody>
-      </table>
-    </div>
     <div class="cta-final reveal">
       <h2>From one corridor to a national programme.</h2>
       <p>Noida Authority &amp; Traffic Police → UPEIDA / UP Smart Cities → MoRTH / MeitY / Smart Cities Mission. A low-risk pilot with a public baseline and independently verifiable KPIs.</p>
@@ -601,6 +653,7 @@
 <script src="js/lab.js"></script>
 <script src="js/console.js"></script>
 <script src="js/whatif.js"></script>
+<script src="js/month-data.js"></script>
 <script src="js/site.js"></script>
 </body>
 </html>
