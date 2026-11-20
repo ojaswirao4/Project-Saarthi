@@ -23,7 +23,9 @@
     pick: null,          // { mode: 'many' | 'one', ids: [] } while choosing roads on the map
     draft: null,         // incident whose advisory is open
     showRoute: null,     // link ids of the way round shown on the map
-    tab: 'live',         // 'live' | 'plan'
+    tab: 'live',         // 'live' | 'plan' | 'log'
+    op: '',              // controller on duty (for the action log)
+    junc: null,          // signal open in the junction panel
   };
   let sim = null, incidents = [], nextInc = 1;
 
@@ -59,13 +61,23 @@
   // "Move map" (or the crash's single pick) leaves dragging to pan.
   const drawing = () => !!state.pick && state.pick.mode === 'many' && state.pick.tool !== 'pan' && !!sim;
   let stroke = null;
+  // A signal right under the pointer (within a few screen pixels): a click there opens its panel, even while drawing.
+  function signalAt(cx, cy) {
+    if (!sim || !R.scale) return null;
+    const [x, y] = R.toWorld(cx, cy);
+    let best = null, bd = 16 / R.scale;
+    for (const j of sim.junctions) { const d = Math.hypot(j.x - x, j.y - y); if (d < bd) { bd = d; best = j; } }
+    return best;
+  }
+  const startStroke = (cx, cy) => { stroke = { pts: [R.toWorld(cx, cy)], added: [], removed: [], last: null, cx, cy }; paintAt(cx, cy); };
   cv.addEventListener('pointerdown', e => {
-    down = { x: e.clientX, y: e.clientY, moved: false };
+    down = { x: e.clientX, y: e.clientY, moved: false, sig: signalAt(e.clientX, e.clientY) };
     cv.setPointerCapture(e.pointerId);
-    if (drawing()) { stroke = { pts: [R.toWorld(e.clientX, e.clientY)], added: [], removed: [], last: null, cx: e.clientX, cy: e.clientY }; paintAt(e.clientX, e.clientY); }
+    if (drawing() && !down.sig) startStroke(e.clientX, e.clientY);
   });
   cv.addEventListener('pointermove', e => {
     if (!down) return;
+    if (!stroke && down.sig && drawing() && Math.hypot(e.clientX - down.x, e.clientY - down.y) >= 4) { startStroke(down.x, down.y); down.sig = null; } // a drag that started on a signal: drawing after all
     if (stroke) { // sample the pen path every few pixels so a quick stroke doesn't skip a road
       const dx = e.clientX - stroke.cx, dy = e.clientY - stroke.cy, n = Math.ceil(Math.hypot(dx, dy) / 6);
       for (let i = 1; i <= n; i++) paintAt(stroke.cx + dx * i / n, stroke.cy + dy * i / n);
@@ -86,6 +98,7 @@
   };
   cv.addEventListener('pointerup', e => {
     if (!stroke && down && !down.moved && state.pick && (state.pick.mode === 'one' || state.pick.mode === 'point')) pickAt(e.clientX, e.clientY);
+    else if (!stroke && down && !down.moved && sim) { const j = down.sig || (!state.pick && (sim.nodes[R.hit(e.clientX, e.clientY)] || null)); if (j) openJunction(j); }
     endStroke();
   });
   cv.addEventListener('pointercancel', endStroke);
@@ -245,6 +258,7 @@
       ctx.globalAlpha = 1;
       R.pill('turn green?', j.x, j.y - Math.max(j.r + 14, 22 / R.scale), '#000', R.theme.amber, 'center');
     }
+    for (const j of sim.junctions) if (j.ovr) R.pill(j.ovr.mode === 'flash' ? 'manual · flashing amber' : 'manual override', j.x, j.y + Math.max(j.r + 14, 22 / R.scale), '#fff', R.theme.accent, 'center');
     if (state.ambPreview && state.ambShow) {
       strokeLinks(state.ambPreview, 'rgba(0,0,0,0.5)', 8);
       strokeLinks(state.ambPreview, R.theme.red, 4, [8, 6]);
@@ -288,6 +302,7 @@
     $('#c-tabs').querySelectorAll('button').forEach(b => { b.classList.toggle('on', b.dataset.v === v); b.setAttribute('aria-selected', String(b.dataset.v === v)); });
     $('#console-app .cmain').hidden = v !== 'live';
     $('#c-plan').hidden = v !== 'plan';
+    $('#c-actions').hidden = v !== 'log';
     if (v === 'live') requestAnimationFrame(() => R.resize());
   }
   $('#c-tabs').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) setTab(b.dataset.v); });
@@ -301,6 +316,7 @@
     incidents = []; state.draft = null; state.pick = null; state.showRoute = null; state.ambPreview = null; state.ambChoice = null;
     $('#c-load').textContent = 'loading the area…';
     $('#p-draft').hidden = true;
+    state.junc = null; $('#p-junc').hidden = true; acked.clear();
     renderList(); renderForm();
     setTimeout(() => { // let the "loading" text paint: a real area takes a few seconds to warm up
       sim = new S.Sim({ mode: 'adaptive', seed: 7, startHour: wallT() / 3600, warmup: true, network: state.area, controllerMarshals: true, priorityApproval: true });
@@ -583,6 +599,7 @@
     }
     Object.assign(inc, { id: nextInc++, at: now, sent: null, done: false });
     incidents.unshift(inc);
+    act(`${inc.title}: ${inc.where}`, '', 'Logged it', null);
     state.pick = null;
     renderForm();
     openDraft(inc);
@@ -614,9 +631,14 @@
     if (!b || !sim) return;
     const j = sim.nodes[b.dataset.j];
     if (b.dataset.ask === 'show') { showJunction(j); return; }
-    const ev = sim.evs.find(v => v.id === +b.dataset.ev);
-    if (b.dataset.ask === 'green') sim.changeLight(ev, b.dataset.j); else sim.leaveLight(ev, b.dataset.j);
-    updateAsk(); renderList(); renderLog();
+    answerAsk(+b.dataset.ev, b.dataset.j, b.dataset.ask === 'green');
+  }
+  // The controller's answer to an ambulance light suggestion (from the map box, the card or the queue).
+  function answerAsk(evId, jId, green) {
+    const ev = sim.evs.find(v => v.id === evId), p = ev && ev.plan && ev.plan.find(x => x.j === jId);
+    if (!(green ? sim.changeLight(ev, jId) : sim.leaveLight(ev, jId))) return;
+    if (p) { p.logged = true; act(`Ambulance light · ${p.name}`, 'Turn this light green for the ambulance', green ? 'Turned it green' : 'Left it on normal control', p.asked); }
+    updateAsk(); renderList(); renderLog(); renderQueue();
   }
 
   function toast(title, body) {
@@ -675,6 +697,7 @@
     $('#d-for').textContent = `· ${inc.title}, ${inc.where}`;
     $('#d-title').value = txt.title;
     $('#d-body').value = txt.body;
+    inc.drafted = { title: txt.title, body: txt.body };
     $('#d-routes').innerHTML = rows.length ? `<table><tbody>${rows.map((r, i) => `<tr data-i="${i}" class="${r.noWay ? 'noway' : ''}"${i >= 3 ? ' hidden' : ''}>
         <td>${esc(r.from)} → ${esc(r.to)}</td><td>${r.noWay ? 'no way through on the main roads' : `via ${esc(r.via)} <span class="muted">(${esc(r.extra)})</span>`}</td></tr>`).join('')}</tbody></table>
         <p class="fnote">Busiest directions first. Click one to show its way round on the map.${rows.length > 3 ? ` <a href="#" id="d-more">Show all ${rows.length}</a>` : ''}</p>`
@@ -723,9 +746,15 @@
     inc.sent = { t: sim.t, n, title: $('#d-title').value.trim(), body: $('#d-body').value.trim(), turnedBack: (inc.closure && inc.closure.turnedBack) || 0 };
     if (inc.closure) inc.closure.knownAt = sim.t; // drivers act on it from now
     sim.addLog(`Advisory sent to ${n} drivers: "${inc.sent.title}"`, 'sent');
+    const edited = inc.drafted && (inc.drafted.title !== inc.sent.title || inc.drafted.body !== inc.sent.body);
+    act(`Advisory · ${inc.title}: ${inc.where}`, `Send the drafted advisory (reaches ${n} drivers)`, `Sent${edited ? ', text edited' : ' as drafted'}, to ${n} drivers`, inc.at);
     closeDraft();
   });
-  $('#d-hold').addEventListener('click', closeDraft);
+  $('#d-hold').addEventListener('click', () => {
+    const inc = state.draft;
+    if (inc && sim) act(`Advisory · ${inc.title}: ${inc.where}`, 'Send the drafted advisory', 'Held it, not sent', inc.at);
+    closeDraft();
+  });
 
   // ------------------------------------------------------------------ incident list
   function endIncident(inc) {
@@ -805,7 +834,8 @@
     const box = e.target.closest('input[data-a="auto"]');
     if (box) {
       state.autoAmb = sim.autoApprove = box.checked;
-      if (box.checked) for (const x of sim.pendingSuggestions()) sim.changeLight(x.ev, x.p.j, true);
+      act('Ambulance lights', '', box.checked ? 'Set to change automatically, no asking' : 'Set to ask each time', null);
+      if (box.checked) for (const x of sim.pendingSuggestions()) { sim.changeLight(x.ev, x.p.j, true); x.p.logged = true; }
       updateAsk(); renderList(); renderLog();
       return;
     }
@@ -813,7 +843,7 @@
     if (!b) return;
     const inc = incidents.find(i => i.id === +b.dataset.id);
     if (b.dataset.a === 'draft') openDraft(inc);
-    else { endIncident(inc); renderList(); }
+    else { endIncident(inc); act(`${inc.title}: ${inc.where}`, '', 'Marked cleared', inc.at); renderList(); }
   });
 
   // ------------------------------------------------------------------ activity log, header
@@ -867,7 +897,12 @@
       else if (sim.t >= inc.until) inc.done = true;
     }
     if (sim.newSuggestion) sim.newSuggestion = false;
+    for (const ev of sim.evs) if (ev.plan) for (const p of ev.plan) { // a suggestion nobody answered before the ambulance got there
+      if (p.asked != null && p.ok == null && p.rec && !p.logged) { p.logged = true; act(`Ambulance light · ${p.name}`, 'Turn this light green for the ambulance', 'No answer before the ambulance reached it', p.asked, p.rec.t); }
+    }
     updateAsk();
+    renderQueue();
+    updateJunction();
     renderList();
     renderSched();
     updateCam();
@@ -914,7 +949,7 @@
     const b = e.target.closest('button[data-cam]'), j = b && sim && sim.nodes[b.dataset.j];
     if (!j) return;
     if (b.dataset.cam === 'show') showJunction(j);
-    else { sim.sendMarshal(j); updateCam(); renderLog(); }
+    else sendMarshal(j);
   });
 
   // ------------------------------------------------------------------ scheduled plans
@@ -948,6 +983,7 @@
     scheduled.push(it);
     applyPlan(it);
     if (sim) sim.addLog(`Plan scheduled: ${it.plan} for "${it.title}" (${day === today ? 'today' : 'tomorrow'})`, 'sent');
+    act(`Plan · ${it.title}`, `Recommended plan: ${it.plan}`, `Scheduled it, ${day === today ? 'today' : 'tomorrow'} ${W_hhmm(h0)}–${W_hhmm(h1)}`, null);
     setTab('live');
     renderSched();
     toast('Plan scheduled', `${it.plan}, ${day === today ? 'today' : 'tomorrow'} ${W_hhmm(h0)}–${W_hhmm(h1)}. It runs in the live twin at those times.`);
@@ -976,9 +1012,176 @@
     it.cancelled = true;
     if (it.handle) sim.removeScenario(it.handle);
     sim.addLog(`Plan cancelled: ${it.plan} for "${it.title}"`, 'sent');
+    act(`Plan · ${it.title}`, '', 'Cancelled it', null);
     renderSched(); renderLog();
   });
   window.SAARTHI_CONSOLE = { get area() { return state.area; }, schedule: schedulePlan, setTab };
+
+  // ------------------------------------------------------------------ action log
+  // Every decision taken in the console, for accountability: what SAARTHI suggested, what the controller on duty
+  // chose, and how long after the alert (twin clock). Kept for the session; the controller downloads it as CSV.
+  const actions = [];
+  try { state.op = localStorage.getItem('saarthi-op') || ''; } catch (e) { /* storage blocked: ask each time */ }
+  $('#c-op').value = state.op;
+  $('#c-op').addEventListener('input', e => { state.op = e.target.value.trim(); try { localStorage.setItem('saarthi-op', state.op); } catch (x) { /* ignore */ } });
+  function act(about, suggested, chose, since, at) {
+    const t = at != null ? at : sim ? sim.t : 0;
+    actions.unshift({ t, area: (sim && sim.net.short) || area().short || state.area, who: state.op || 'not entered', about, suggested: suggested || '—', chose, resp: since != null ? Math.max(0, Math.round(t - since)) : null });
+    renderActions();
+  }
+  function renderActions() {
+    $('#c-actn').textContent = actions.length ? actions.length : '';
+    $('#c-alog').innerHTML = actions.length ? actions.map(a => `<tr><td>${S.fmtClock(a.t)}</td><td>${esc(a.who)}</td><td>${esc(a.area)}</td><td>${esc(a.about)}</td><td>${esc(a.suggested)}</td><td>${esc(a.chose)}</td><td class="num">${a.resp == null ? '—' : S.fmtDur(a.resp)}</td></tr>`).join('')
+      : '<tr><td colspan="7" class="empty">No actions yet. Every decision you take in the Live tab is recorded here.</td></tr>';
+  }
+  $('#c-csv').addEventListener('click', () => {
+    const q = v => `"${String(v).replace(/"/g, '""')}"`;
+    const rows = [['Date', 'Time', 'On duty', 'Area', 'About', 'SAARTHI suggested', 'Controller chose', 'Response (s)']]
+      .concat(actions.slice().reverse().map(a => [new Date().toISOString().slice(0, 10), S.fmtClock(a.t), a.who, a.area, a.about, a.suggested, a.chose, a.resp == null ? '' : a.resp]));
+    const blob = new Blob([rows.map(r => r.map(q).join(',')).join('\r\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = `saarthi-action-log-${new Date().toISOString().slice(0, 10)}.csv`; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  });
+  renderActions();
+
+  function sendMarshal(j) {
+    const a = camAlerts.get(j.id);
+    if (!sim.sendMarshal(j)) return;
+    act(`Blocked junction · ${sim.jName(j)}`, 'Camera alert: vehicles stuck in the junction', 'Sent the marshal', a ? a.since : sim.t - j.blockedT);
+    updateCam(); renderLog(); renderQueue();
+  }
+
+  // ------------------------------------------------------------------ needs attention
+  // One list of what needs the controller now, most urgent first, with the action on each line. An item can be
+  // acknowledged (it comes back after 5 min if it is still there); an ambulance's light needs an answer.
+  const acked = new Map(); // key -> twin time acknowledged
+  const ACK_HIDE = 300;
+  const SEV = { 1: 'Urgent', 2: 'High', 3: 'Medium', 4: 'Info' };
+  function queueItems() {
+    const out = [], since = s => `since ${clock(s)}`;
+    for (const { ev, p } of sim.pendingSuggestions()) out.push({ key: `amb:${ev.id}:${p.j}`, sev: 1, t: p.asked, title: `Ambulance approaching ${p.name}`,
+      detail: `SAARTHI suggests turning this light green for it, on ${p.road}.${p.inferred ? ' Inferred signal, to be confirmed by survey.' : ''}`,
+      btns: [['green', 'Turn light green', 1], ['leave', 'Leave it'], ['show', 'Show']], j: p.j, ev: ev.id, noAck: true, suggest: 'Turn this light green for the ambulance' });
+    for (const j of sim.isects) {
+      if (!(j.boxBlocked && j.blockedT >= CAM_CONFIRM)) continue;
+      const s = sim.t - j.blockedT, grid = j.inGridlock || j.blockedT >= 30;
+      const m = j.marshalAt != null ? (sim.t < j.marshalAt ? ' Marshal on the way.' : ' Marshal there, clearing it.') : '';
+      out.push({ key: `${grid ? 'grid' : 'box'}:${j.id}`, sev: grid ? 2 : 3, t: s, title: `${grid ? 'Gridlock' : 'Blocked junction'} at ${sim.jName(j)}`,
+        detail: `Vehicles stuck inside the junction, ${since(s)}.${m}`, btns: [['show', 'Show'], ...(j.marshalAt == null ? [['marshal', 'Send marshal', 1]] : [])], j: j.id, suggest: 'Send the marshal' });
+    }
+    for (const inc of incidents) {
+      if (inc.done || inc.sent || inc.type === 'ambulance') continue;
+      out.push({ key: `inc:${inc.id}`, sev: inc.type === 'closure' ? 2 : 3, t: inc.at, title: `${inc.title}: advisory not sent`,
+        detail: `${inc.where}. Drivers find out when they get there.`, btns: [['draft', 'Draft advisory', 1]], inc: inc.id, suggest: 'Send an advisory to drivers heading there' });
+    }
+    for (const j of sim.junctions) {
+      if (j.ovr && j.ovr.until - sim.t <= 60) out.push({ key: `ovr:${j.id}:${j.ovr.until}`, sev: 3, t: j.ovr.from, title: `Manual override at ${sim.jName(j)} ends at ${clock(j.ovr.until)}`,
+        detail: `${sim.ovrText(j)}. It goes back to SAARTHI then.`, btns: [['extend', '+5 min'], ['endovr', 'End now']], j: j.id });
+      if (j.faultUntil > sim.t) out.push({ key: `cam:${j.id}`, sev: 3, t: sim.t, title: `Camera fault at ${sim.jName(j)}`, detail: 'Signal running its fixed plan until the camera is back.', btns: [['show', 'Show']], j: j.id });
+    }
+    for (const it of scheduled) {
+      if (it.area !== state.area || it.cancelled) continue;
+      const a = planT(it, it.h0);
+      if (a > sim.t && a - sim.t <= 900) out.push({ key: `plan:${it.id}`, sev: 4, t: a, title: `${it.title}: plan starts at ${W_hhmm(it.h0)}`, detail: `${it.plan}. Closures and lane rules come on by themselves.`, btns: [] });
+    }
+    return out.filter(x => x.noAck || !(acked.has(x.key) && sim.t - acked.get(x.key) < ACK_HIDE)).sort((p, q) => p.sev - q.sev || p.t - q.t);
+  }
+  let queueNow = [];
+  function renderQueue() {
+    if (!sim) return;
+    queueNow = queueItems();
+    $('#c-qn').textContent = queueNow.length || '';
+    $('#c-qn').classList.toggle('hot', queueNow.some(x => x.sev <= 2));
+    const ol = $('#c-queue');
+    const html = queueNow.length ? queueNow.map(x => `<li class="q sev${x.sev}" data-key="${esc(x.key)}">
+        <div class="inc-h"><b>${esc(x.title)}</b><span class="sevt">${SEV[x.sev]}</span></div>
+        <div class="muted">${esc(x.detail)}</div>
+        <div class="acts">${x.btns.map(([a, l, pr]) => `<button class="btn btn-sm${pr ? ' btn-primary' : ' btn-ghost'}" data-q="${a}">${esc(l)}</button>`).join('')}${x.noAck ? '' : '<button class="btn btn-sm btn-ghost" data-q="ack">Acknowledge</button>'}</div></li>`).join('')
+      : `<li class="empty">Nothing needs you right now. Click any signal on the map to see its lights or take it over.</li>`;
+    if (html !== ol._html) { ol.innerHTML = html; ol._html = html; } // only on change, so a click is never lost to a redraw
+  }
+  $('#c-queue').addEventListener('click', e => {
+    const b = e.target.closest('button[data-q]'), li = b && b.closest('li[data-key]');
+    const x = li && queueNow.find(q => q.key === li.dataset.key);
+    if (!x || !sim) return;
+    const j = x.j && sim.nodes[x.j], a = b.dataset.q;
+    if (a === 'green' || a === 'leave') { answerAsk(x.ev, x.j, a === 'green'); return; }
+    if (a === 'show') { showJunction(j); if (j.sig) openJunction(j); return; }
+    if (a === 'marshal') { sendMarshal(j); return; }
+    if (a === 'draft') { openDraft(incidents.find(i => i.id === x.inc)); return; }
+    if (a === 'extend') { sim.extendOverride(j, 5); act(`Signal · ${sim.jName(j)}`, '', 'Extended the manual override by 5 min', null); }
+    if (a === 'endovr') { sim.clearOverride(j); act(`Signal · ${sim.jName(j)}`, '', 'Ended the manual override: back to SAARTHI', null); }
+    if (a === 'ack') { acked.set(x.key, sim.t); act(x.title, x.suggest || '', 'Acknowledged', x.t); }
+    renderQueue(); renderLog(); updateJunction(true);
+  });
+
+  // ------------------------------------------------------------------ junction panel: manual override
+  // Click a signal on the map: each road's light and queue, and the controller can take the signal over for a set
+  // time. Safety stays with the signal (amber and all-red on every switch, a minimum green, ambulance priority).
+  function openJunction(j) {
+    j = sim.ctrl(j);
+    if (!j || !j.sig) return;
+    state.junc = j.id;
+    R.selected = j.id; clearTimeout(ringTimer);
+    $('#p-junc').hidden = false;
+    updateJunction(true);
+    const side = $('.cside');
+    side.scrollTop = $('#p-junc').offsetTop - 4;
+  }
+  function juncStatus(j) {
+    if (j.ovr) return `<span class="st bad">Manual override: ${esc(sim.ovrText(j))}, until ${clock(j.ovr.until)}</span>`;
+    if (j.faultUntil > sim.t) return '<span class="st wait">Camera fault: running its fixed plan</span>';
+    if (j.inferredCtl) return '<span class="st">SAARTHI runs its fixed plan (inferred signal, to be confirmed by survey)</span>';
+    return '<span class="st ok">SAARTHI adaptive control</span>';
+  }
+  // What the signal was doing before the controller took it over (for the action log).
+  const ctlText = j => (j.faultUntil > sim.t ? 'Fixed plan (camera fault)' : j.inferredCtl ? 'Fixed plan (inferred signal)' : 'SAARTHI adaptive control');
+  // A road with no name in OpenStreetMap: "unnamed primary road", not its map id.
+  const roadName = n => (!n ? 'unnamed road' : /^(motorway|trunk|primary|secondary|tertiary) road /.test(n) ? `unnamed ${n.split(' ')[0]} road` : n);
+  let juncKey = '';
+  function updateJunction(force) {
+    const j = state.junc && sim && sim.nodes[state.junc];
+    if (!j) { $('#p-junc').hidden = true; return; }
+    const info = sim.approachInfo(j);
+    const key = `${j.id}|${j.ovr ? j.ovr.mode + j.ovr.i + j.ovr.until : ''}|${j.faultUntil > sim.t}`;
+    if (force || key !== juncKey) { // the structure (and its buttons) only when it changes
+      juncKey = key;
+      $('#p-junc').innerHTML = `<h2>Signal · ${esc(sim.jName(j))} <button class="x" type="button" data-o="close" aria-label="Close">×</button></h2>
+        <div class="jstat">${juncStatus(j)}</div>
+        <table class="jt"><thead><tr><th>Road coming in</th><th>Light</th><th class="num">Queue</th><th class="num">Red for</th><th></th></tr></thead><tbody>
+        ${info.map((a, i) => `<tr data-i="${i}"><td>${esc(roadName(a.name))}<span class="sub2">from ${esc(a.approach || '')}</span></td><td class="lt"></td><td class="num q"></td><td class="num r"></td>
+          <td><button class="btn btn-sm btn-ghost" data-o="hold" data-i="${i}">Hold green</button></td></tr>`).join('')}</tbody></table>
+        <div class="jctl">
+          <label>For <select id="j-mins"><option value="2">2 min</option><option value="5" selected>5 min</option><option value="15">15 min</option></select></label>
+          <button class="btn btn-sm btn-ghost" data-o="fixed">Fixed plan</button>
+          <button class="btn btn-sm btn-ghost" data-o="flash">Flashing amber</button>
+          ${j.ovr ? '<button class="btn btn-sm btn-ghost" data-o="extend">+5 min</button><button class="btn btn-sm btn-primary" data-o="end">End override: back to SAARTHI</button>' : ''}
+        </div>
+        <p class="fnote">Manual control returns to SAARTHI when the time is up. Each switch still runs amber and all-red, the current green runs at least 5 s, and an ambulance with priority still gets its green. Flashing amber switches the signal off: drivers give way.</p>`;
+    }
+    const rows = $('#p-junc').querySelectorAll('tbody tr');
+    info.forEach((a, i) => {
+      const tr = rows[i]; if (!tr) return;
+      const flash = j.ovr && j.ovr.mode === 'flash';
+      tr.querySelector('.lt').innerHTML = flash ? '<span class="sig Y"></span> flashing' : `<span class="sig ${a.state}"></span> ${a.state === 'G' ? 'green' : a.state === 'Y' ? 'amber' : 'red'}`;
+      tr.querySelector('.q').textContent = `${Math.round(a.queue)} PCU`;
+      tr.querySelector('.r').textContent = a.state !== 'R' || flash ? '—' : S.fmtDur(a.red);
+      tr.classList.toggle('held', !!(j.ovr && j.ovr.mode === 'hold' && j.ovr.i === i));
+    });
+  }
+  $('#p-junc').addEventListener('click', e => {
+    const b = e.target.closest('[data-o]'), j = b && state.junc && sim && sim.nodes[state.junc];
+    if (!j) return;
+    const o = b.dataset.o, mins = +($('#j-mins') || { value: 5 }).value, name = sim.jName(j);
+    if (o === 'close') { state.junc = null; R.selected = null; $('#p-junc').hidden = true; return; }
+    if (o === 'hold') { const i = +b.dataset.i; sim.setOverride(j, 'hold', i, mins); act(`Signal · ${name}`, ctlText(j), `Manual override: green held for ${roadName(j.approaches[i].name)}, ${mins} min`, null); }
+    if (o === 'fixed') { sim.setOverride(j, 'fixed', null, mins); act(`Signal · ${name}`, ctlText(j), `Manual override: fixed plan, ${mins} min`, null); }
+    if (o === 'flash') { sim.setOverride(j, 'flash', null, mins); act(`Signal · ${name}`, ctlText(j), `Manual override: flashing amber, ${mins} min`, null); }
+    if (o === 'extend') { sim.extendOverride(j, 5); act(`Signal · ${name}`, '', 'Extended the manual override by 5 min', null); }
+    if (o === 'end') { sim.clearOverride(j); act(`Signal · ${name}`, '', 'Ended the manual override: back to SAARTHI', null); }
+    updateJunction(true); renderLog(); renderQueue();
+  });
 
   // ------------------------------------------------------------------ loop
   let lastUi = 0;

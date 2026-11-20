@@ -11,7 +11,7 @@
     const root = document.documentElement;
     const dark = root.dataset.theme ? root.dataset.theme === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches;
     root.dataset.theme = dark ? 'light' : 'dark';
-    try { localStorage.setItem('saarthi-theme', root.dataset.theme); } catch (e) {}
+    try { localStorage.setItem('saarthi-theme-v2', root.dataset.theme); } catch (e) {}
     document.dispatchEvent(new Event('themechange'));
   });
 
@@ -202,38 +202,33 @@
   const STAGES = [
     { n: '01', name: 'Sense', sub: 'see every lane',
       does: 'Live vehicle counts, queue lengths, stopped and illegally parked vehicles, incidents.',
-      ai: 'Computer vision on existing CCTV (YOLOv11 + BoT-SORT at the edge); GPS probe data.',
-      twin: 'Every approach publishes the slide-7 edge message: per-lane queue, PCU, flow, speed and turning ratios. Open the junction inspector to see it live.', status: ['sim', 'Simulated edge feed'] },
+      twin: 'Every approach reports its per-lane queue, flow, speed and turning counts. Open the junction inspector to see each road’s queue and light live.', status: ['sim', 'Simulated edge feed'] },
     { n: '02', name: 'Predict', sub: 'see the jam coming',
       does: 'Forecasts congestion 30–60 min ahead from history, weather, office shifts and Film City / event schedules.',
-      ai: 'Spatio-temporal deep learning on the corridor graph (GNN / Transformer).',
       twin: 'A 60-minute demand-vs-capacity forecast from the daily profile, tidal pattern and scheduled events drives departure advice. Junction controllers add a platoon look-ahead.', status: ['live', 'Live · simplified model'] },
     { n: '03', name: 'Decide & act', sub: 'one brain, many signals',
       does: 'Re-times junctions to live queues, forms green waves and pushes balanced diversions to message boards and navigation apps.',
-      ai: 'Adaptive signals (multi-agent RL on a deterministic safety floor); route optimisation.',
       twin: 'A max-pressure, spillback-aware signal brain within hard min/max-green and anti-starvation limits, a dedicated green-corridor lane for ambulances (junctions hold for only the few seconds it takes to cross), perimeter metering at every entry and VMS diversions.', status: ['live', 'Live in the twin'] },
     { n: '04', name: 'Enforce', sub: 'protect the capacity',
       does: 'Auto-flags parking, stopping, box-blocking and wrong-way driving, and alerts towing and marshals.',
-      ai: 'Vision-based violation detection.',
       twin: 'Illegal parking is spotted by camera in ~30 s (a patrol takes ~9 min) and towed in ~6 min instead of ~15; the twin\'s event stopwatch times both. Box-blocking alerts bring marshals in 60 s instead of 180. Keep-clear compliance holds at junctions.', status: ['live', 'Live in the twin'] },
     { n: '05', name: 'Shape demand', sub: 'flatten the peak',
       does: 'Nudges people to leave earlier or later, staggers shifts and right-sizes feeder buses.',
-      ai: 'Personalised departure advice; shuttle / cab scheduling.',
       twin: 'When the forecast crosses 93% of capacity, 12% of car and two-wheeler commuters accept advice to leave 15 min later. Trip time counts from when they actually leave.', status: ['live', 'Live in the twin'] },
   ];
   const tabs = $('.loop-tabs'), panel = $('.loop-panel');
   tabs.innerHTML = STAGES.map((s, i) => `<button class="loop-tab${i ? '' : ' on'}" role="tab" data-i="${i}"><span class="n">${s.n}</span><b>${s.name}</b><small>${s.sub}</small></button>`).join('');
-  let stage = 0, userPicked = false;
+  let stage = 0;
   function showStage(i) {
     stage = i;
     $$('.loop-tab').forEach((b, k) => { b.classList.toggle('on', k === i); b.setAttribute('aria-selected', String(k === i)); });
     const s = STAGES[i];
-    panel.innerHTML = `<div><h4>What it does</h4><p>${s.does}</p></div><div><h4>AI capability</h4><p>${s.ai}</p></div>`
+    panel.innerHTML = `<div><h4>What it does</h4><p>${s.does}</p></div>`
       + `<div><span class="status ${s.status[0]}">● ${s.status[1]}</span><p>${s.twin}</p></div>`;
   }
-  tabs.addEventListener('click', e => { const b = e.target.closest('.loop-tab'); if (b) { userPicked = true; showStage(+b.dataset.i); } });
+  tabs.addEventListener('click', e => { const b = e.target.closest('.loop-tab'); if (b) showStage(+b.dataset.i); });
   showStage(0);
-  if (!reduced) setInterval(() => { if (!userPicked) showStage((stage + 1) % STAGES.length); }, 6000);
+  // no auto-advance: the reader moves between stages with the tabs
 
   // ------------------------------------------------------------------ benchmark
   const B_START = 8, B_END = 10.5, B_FROM = 8.5;
@@ -293,9 +288,8 @@
     const dur = S.fmtDur;
     const run = $('#bench-run');
     run.classList.add('done');
-    $('#bench-status').innerHTML = `✓ Computed in your browser: ${a.n.toLocaleString('en-IN')} vs ${b.n.toLocaleString('en-IN')} trips, 08:30–10:30, `
-      + `ambulance at 09:10 (green corridor lane in the SAARTHI twin), illegal parking at 09:30 (cleared in ${dur(b.parkClear)} vs ${dur(a.parkClear)}). `
-      + `SAARTHI nudged ${b.nudged.toLocaleString('en-IN')} commuters to leave later.`;
+    $('#bench-status').textContent = ''; // the progress line goes once the run is done
+    $('#bench-status').hidden = true;
     const card = (pct, title, fv, sv, i) => {
       const cls = pct >= 2 ? '' : pct <= -2 ? 'bad' : 'neutral';
       return `<div class="bcard" style="animation-delay:${i * 90}ms"><div class="big ${cls}">${pct >= 0 ? '−' : '+'}${Math.abs(pct).toFixed(0)}%</div>`
@@ -335,4 +329,70 @@
   window.addEventListener('resize', () => { if (bench.done) benchChart.draw(); });
   document.addEventListener('themechange', () => { if (bench.done) setTimeout(renderBench, 0); });
   setTimeout(runBenchmark, 900);
+
+  // ------------------------------------------------------------------ simulated month (precomputed by tools/month.js)
+  const MONTH = window.SAARTHI_MONTH || {};
+  const NETS = window.SAARTHI_NETWORKS || {};
+  const moAreas = ['fco', 'cp', 's62', 's34', 'fc'].filter(id => MONTH[id]);
+  const moName = id => (id === 'fc' ? 'Film City loop (schematic)' : (NETS[id] && NETS[id].short) || id);
+  let moArea = moAreas[0];
+  const dayFmt = t => `Day ${Math.round(t)}`;
+  const moCharts = $('#mo-avg') ? {
+    avg: new window.LineChart($('#mo-avg'), { fmt: (v, ax) => (v == null ? '—' : ax ? v.toFixed(1) : `${v.toFixed(1)} min`), xfmt: dayFmt }),
+    ev: new window.LineChart($('#mo-ev'), { fmt: (v, ax) => (v == null ? '—' : ax ? v.toFixed(1) : `${v.toFixed(1)} min`), xfmt: dayFmt }),
+  } : null;
+
+  function renderMonth() {
+    if (!moCharts) return;
+    if (!moArea) {
+      $('#mo-cards').classList.add('mo-empty');
+      $('#mo-cards').textContent = 'The month results have not been generated yet (node tools/month.js <map>, then node tools/month-pack.js).';
+      return;
+    }
+    $('#mo-area').innerHTML = moAreas.map(id => `<button data-v="${id}" class="${id === moArea ? 'on' : ''}">${moName(id)}</button>`).join('');
+    const M = MONTH[moArea], rows = M.rows, th = window.SAARTHI_THEME;
+    const mean = a => { const b = a.filter(v => v != null); return b.length ? b.reduce((x, y) => x + y, 0) / b.length : null; };
+    const sum = a => a.filter(v => v != null).reduce((x, y) => x + y, 0);
+    const pick = (side, k) => rows.map(r => r[side][k]);
+    const F = k => mean(pick('fixed', k)), Sm = k => mean(pick('smart', k));
+    const cut = (x, y) => (x ? (x - y) / x * 100 : 0);
+    const dur = S.fmtDur;
+    const card = (pct, title, fv, sv, i) => {
+      const cls = pct >= 2 ? '' : pct <= -2 ? 'bad' : 'neutral';
+      const big = Math.abs(pct) < 0.5 ? '≈ 0%' : `${pct >= 0 ? '−' : '+'}${Math.abs(pct).toFixed(0)}%`;
+      return `<div class="bcard" style="animation-delay:${i * 90}ms"><div class="big ${cls}">${big}</div>`
+        + `<h3>${title}</h3><div class="vs"><span><i class="swatch fixed"></i>${fv}</span><span><i class="swatch smart"></i>${sv}</span></div></div>`;
+    };
+    const parkDays = rows.filter(r => r.parkAt != null && r.fixed.park != null && r.smart.park != null);
+    const pF = mean(parkDays.map(r => r.fixed.park)), pS = mean(parkDays.map(r => r.smart.park));
+    $('#mo-cards').classList.remove('mo-empty');
+    $('#mo-cards').innerHTML = [
+      card(cut(F('avg'), Sm('avg')), 'Average trip time, month', dur(F('avg')), dur(Sm('avg')), 0),
+      card(cut(F('p95'), Sm('p95')), '95th-percentile trip time, month', dur(F('p95')), dur(Sm('p95')), 1),
+      card(cut(F('wait'), Sm('wait')), 'Average wait per junction', `${Math.round(F('wait'))} s`, `${Math.round(Sm('wait'))} s`, 2),
+      card(cut(F('ev'), Sm('ev')), 'Ambulance delay, average run', dur(F('ev')), dur(Sm('ev')), 3),
+      parkDays.length ? card(cut(pF, pS), `Illegal parking: back to normal (${parkDays.length} days)`, dur(pF), dur(pS), 4)
+        : card(0, 'Illegal parking', 'no days', 'no days', 4),
+    ].join('');
+    const saved = sum(rows.map(r => (r.fixed.avg - r.smart.avg) * r.smart.trips)) / 3600;
+    const evSaved = (sum(pick('fixed', 'ev')) - sum(pick('smart', 'ev'))) / 60;
+    const better = rows.filter(r => r.smart.avg < r.fixed.avg * 0.99).length;
+    const worse = rows.filter(r => r.smart.avg > r.fixed.avg * 1.01).length;
+    $('#mo-sum').innerHTML = `Over ${rows.length} working days on ${moName(moArea)}: `
+      + `<b>${saved >= 0 ? '≈ ' + Math.round(saved).toLocaleString('en-IN') + ' vehicle-hours saved' : '≈ ' + Math.round(-saved).toLocaleString('en-IN') + ' vehicle-hours lost'}</b> in the peak hour, `
+      + `<b>${Math.round(evSaved)} ambulance minutes saved</b> across ${rows.length} runs, `
+      + `and SAARTHI was faster on <b>${better} of ${rows.length} days</b>${worse ? ` (slower on ${worse})` : ''}. `
+      + `<span class="hint">Simulated with tools/month.js on ${M.generated}.</span>`;
+    const series = (k, side) => rows.map(r => ({ t: r.day, v: r[side][k] == null ? null : r[side][k] / 60 }));
+    for (const [k, ch] of [['avg', moCharts.avg], ['ev', moCharts.ev]]) {
+      ch.theme = th;
+      ch.setData([{ name: 'Fixed', color: th.fixed, points: series(k, 'fixed') }, { name: 'SAARTHI', color: th.smart, points: series(k, 'smart') }]);
+    }
+  }
+  if (moCharts) {
+    $('#mo-area').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { moArea = b.dataset.v; renderMonth(); } });
+    window.addEventListener('resize', () => { if (moArea) { moCharts.avg.draw(); moCharts.ev.draw(); } });
+    document.addEventListener('themechange', () => setTimeout(renderMonth, 0));
+    setTimeout(renderMonth, 0);
+  }
 })();

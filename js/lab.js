@@ -11,7 +11,7 @@
   const DEFAULT_AREA = REAL.some(a => a.id === 'fco') ? 'fco' : 'fc'; // the real Film City corridor
 
   const state = {
-    running: true, speed: 5, startHour: 8.5, demand: 1, view: 'split', colorBy: 'speed',
+    running: true, speed: 1, startHour: 8.5, demand: 1, view: 'split', colorBy: 'speed',
     seed: 7, selected: null, approach: 0, visible: false, scenario: null,
     area: AREAS.some(a => a.id === qs.get('area')) ? qs.get('area') : DEFAULT_AREA,
     features: { greenCorridor: true, signalPriority: true, metering: true, vms: true, enforcement: true, shaping: true, mergeControl: true },
@@ -61,7 +61,7 @@
     const common = { seed: state.seed, startHour: sc ? sc.startHour : state.startHour, demandMult: state.demand, warmup: true, network: state.area };
     fixed = new S.Sim(Object.assign({ mode: 'fixed', scenario: sc && sc.fixed }, common));
     smart = new S.Sim(Object.assign({ mode: 'adaptive', scenario: sc && sc.smart, features: Object.assign({}, state.features), priorityApproval: true }, common));
-    smart.autoApprove = state.autoApprove;
+    smart.autoApprove = true; // in the twin SAARTHI changes the lights itself; the console asks the controller
     state.amb = null; stopFollow(); renderAmb();
     $('#scen-banner').hidden = !sc;
     if (sc) $('#scen-label').textContent = sc.label;
@@ -109,16 +109,16 @@
     $('#ev-cam small').textContent = `${h.fault} for 5 min`;
     const st = net.stats;
     $('#net-info').innerHTML = net.schematic
-      ? '<b>Film City loop, Noida</b> · schematic: 4 signalised junctions, 5 entries. Pick "Film City · OpenStreetMap" above for the same corridor on its actual road network.'
+      ? '<b>Film City loop, Noida</b> · schematic: 4 signalised junctions. Pick "Film City · OpenStreetMap" above for the same corridor on its actual road network.'
       : `<b>${net.name}</b> · real road network from OpenStreetMap${net.fetched ? ` (pulled ${net.fetched})` : ''}: `
         + `<span>${st.junctions} junctions</span> <span>${st.signalised} signalised${st.inferredSignals ? ` (${st.inferredSignals} inferred)` : ''}</span> `
-        + (fixed.inferredCount ? `<span>+ ${fixed.inferredCount} crossing${fixed.inferredCount === 1 ? '' : 's'} taken as signalised (inferred: OSM maps few signals here; to be confirmed by the signal survey)</span> ` : '')
         + `<span>${st.uturns} U-turn points</span> <span>${st.slipRoads} slip roads</span> `
         + `<span>${st.flyovers} flyover${st.flyovers === 1 ? '' : 's'} (${st.flyoverLinks} links)</span>${st.underpassLinks ? ` <span>${st.underpassLinks} underpass links</span>` : ''} `
-        + `<span>${st.roadKm} road-km</span> <span>${st.entries} entries</span>`;
+        + `<span>${st.roadKm} road-km</span>`;
     const gc = smart.gcBuilt ? smart.gcLinks.filter(L => L.kind !== 'entry' && L.kind !== 'exit') : [];
     const gcKm = smart.gcLinks.reduce((s, L) => s + L.length, 0) / 1000;
-    $('#gc-note').textContent = smart.gcBuilt
+    const gcNote = $('#gc-note');
+    if (gcNote) gcNote.textContent = smart.gcBuilt
       ? `SAARTHI twin: ${gcKm.toFixed(1)} km dedicated lane, ${h.ambulance.label}, through ${gc.length + 1} junctions`
       : 'Switched off: the SAARTHI twin has no dedicated lane and no signal pre-emption';
   }
@@ -176,11 +176,6 @@
     },
   };
   $('#scen-clear').addEventListener('click', () => { state.scenario = null; reset(false); renderLegend(); });
-  $('#rng-demand').addEventListener('input', e => {
-    state.demand = +e.target.value;
-    $('#out-demand').textContent = `${Math.round(state.demand * 100)}%`;
-    if (fixed) { fixed.demandMult = state.demand; smart.demandMult = state.demand; }
-  });
 
   const both = fn => { fn(fixed); fn(smart); };
   function fire(btn, fn) {
@@ -367,8 +362,10 @@
         ? `Right now SAARTHI is cutting the 95th-percentile trip by <em>${pct.toFixed(0)}%</em>: ${dur(ks.p95)} vs ${dur(kf.p95)} on fixed timers.`
         : pct <= -2
           ? `Right now the fixed timers are ahead on 95th-percentile trip time (${dur(kf.p95)} vs ${dur(ks.p95)}).`
-          : `Both systems are coping. Raise demand or start at a peak hour to stress the ${fixed.net.schematic ? 'corridor' : 'network'}.`;
+          : `Both systems are coping. Start at a peak hour to stress the ${fixed.net.schematic ? 'corridor' : 'network'}.`;
     } else h.textContent = 'Collecting trips…';
+    const ht = $('#headline-twin'); // the same line under the twin, next to the way to the analysis
+    if (ht && ht.innerHTML !== h.innerHTML) ht.innerHTML = h.innerHTML;
   }
 
   function chips(el, sim, k) {
@@ -440,7 +437,7 @@
   // and the ambulance goes through on green in its lane. Both twins show how it got through each junction.
   function dispatchAmbulance(auto) {
     if (state.amb && !state.amb.done) return; // one at a time, so the panel tells one story
-    smart.autoApprove = !!(auto || state.autoApprove);
+    smart.autoApprove = true;
     fixed.triggerAmbulance();
     const ev = smart.triggerAmbulance();
     state.amb = { f: fixed.eventLog[fixed.eventLog.length - 1], s: smart.eventLog[smart.eventLog.length - 1], ev, at: smart.t, done: false, held: false };
@@ -449,7 +446,6 @@
     state.follow = true;
     renderAmb();
     updateUI();
-    $('#amb').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   }
   function setRunning(on) {
     state.running = on;
@@ -485,7 +481,7 @@
   }
   // What happened at one signal, in the controller's words.
   function outcome(r, p) {
-    if (!r) return p && p.ok === false ? '<span class="muted">left on normal control · ahead</span>' : p && p.ok ? `<span class="good">${p.auto === 'green' ? 'already green, SAARTHI keeps it green' : 'you turned it green'} · ahead</span>` : p && p.asked != null ? '<span class="warn">SAARTHI suggests turning it green</span>' : '<span class="muted">ahead</span>';
+    if (!r) return p && p.ok === false ? '<span class="muted">left on normal control · ahead</span>' : p && p.ok ? `<span class="good">${p.auto === 'green' ? 'already green, SAARTHI keeps it green' : p.auto ? 'SAARTHI turned it green' : 'you turned it green'} · ahead</span>` : p && p.asked != null ? '<span class="warn">SAARTHI suggests turning it green</span>' : '<span class="muted">ahead</span>';
     const lost = r.lost >= 5 ? ` · lost ${sec(r.lost)}` : '';
     switch (r.how) {
       case 'lane': return '<span class="good">Cross traffic held for a few seconds; crossed in its own lane</span>';
@@ -528,30 +524,33 @@
   }
   const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
   let lastAmb = '';
+  // Each twin's ambulance progress sits just above its own map, inside the header that stays on screen.
+  const lastSlot = { fixed: '', smart: '' };
+  function slots(a) {
+    for (const [who, e, sim] of [['fixed', a && a.f, fixed], ['smart', a && a.s, smart]]) {
+      const el = $(`#amb-slot-${who}`);
+      if (!el) continue;
+      el.hidden = !a;
+      const html = a ? column(e, sim, who) : '';
+      if (html !== lastSlot[who]) { el.innerHTML = html; lastSlot[who] = html; }
+    }
+  }
   function renderAmb() {
     const el = $('#amb'), a = state.amb;
     if (!el) return;
     el.hidden = !a;
-    if (!a) { lastAmb = ''; return; }
+    if (!a) { lastAmb = ''; slots(null); return; }
     const ev = a.ev, plan = ev.plan || [], label = a.s.label.replace(/^Ambulance · /, '').replace(/ & Associated Hospitals/, '');
     let html;
     {
-      const f = a.f, s = a.s, asked = plan.filter(p => p.asked != null).length, n = plan.filter(p => p.ok).length;
+      const f = a.f, s = a.s;
       const changed = s.veh.trace.filter(r => r.how === 'lane' || r.how === 'switched' || r.how === 'kept').length;
       const steps = [
         [true, `${hhmm(a.at)} Ambulance reported`],
-        [asked === plan.length, plan.length ? `SAARTHI suggested ${asked} of ${plan.length} light change${plan.length === 1 ? '' : 's'}` : 'No signals on the route: nothing to change'],
-        ...(plan.length ? [[asked > 0 && plan.every(p => p.asked == null || p.ok != null || p.rec), `You turned ${n} light${n === 1 ? '' : 's'} green`], [n > 0 && changed >= n, `Ambulance through on green: ${Math.min(changed, n)} of ${n}`]] : []),
+        [true, plan.length ? `${plan.length} signal${plan.length === 1 ? '' : 's'} on its route` : 'No signals on the route'],
+        ...(plan.length ? [[changed >= plan.length, `Through on green: ${Math.min(changed, plan.length)} of ${plan.length}`]] : []),
         [s.arriveAt != null, s.arriveAt != null ? `${hhmm(s.arriveAt)} Arrived` : 'Arrival'],
       ];
-      // the suggestion waiting for the controller, with the buttons
-      const pend = smart.pendingSuggestions().filter(x => x.ev === ev);
-      const ask = pend.map(({ p, d }) => `<div class="amb-ask">
-          <div class="amb-ask-k">SAARTHI suggests${a.held ? '<span class="amb-wait">twin paused until you answer</span>' : ''}</div>
-          <p>The ambulance is <b>${d == null ? 'close to' : `${Math.round(d / 10) * 10} m from`} ${esc(p.name)}</b>, coming in on ${esc(p.road)}. Turn this light green for it now${p.inferred ? ' (an inferred signal, to be confirmed by survey)' : ''}${p.lane ? '; it is in the green corridor lane, so nothing is in front of it' : ''}.</p>
-          <div class="amb-acts"><button class="btn btn-primary btn-sm" data-amb="green" data-j="${p.j}">Turn light green</button><button class="btn btn-sm" data-amb="leave" data-j="${p.j}">Leave it on normal control</button></div>
-        </div>`).join('');
-      const auto = plan.length ? `<label class="amb-auto"><input type="checkbox" data-amb="auto"${state.autoApprove ? ' checked' : ''}> Change the lights for ambulances automatically (no asking)</label>` : '';
       a.done = f.arriveAt != null && s.arriveAt != null;
       let foot = '';
       if (a.done) {
@@ -562,11 +561,11 @@
       html = `<div class="amb-h"><h4>Ambulance run · ${esc(label)}</h4>
           <span class="amb-btns"><button class="btn btn-sm${state.follow ? ' on' : ''}" data-amb="follow" aria-pressed="${state.follow}">${state.follow ? 'Following on the map' : 'Follow on the map'}</button>${a.done ? '<button class="btn btn-sm btn-ghost" data-amb="close">Close</button>' : ''}</span></div>
         <ol class="amb-steps">${steps.map(([ok, t]) => `<li class="${ok ? 'ok' : ''}">${t}</li>`).join('')}</ol>
-        ${ask}${auto}
         ${timeline(a)}
-        <div class="amb-cols">${column(f, fixed, 'fixed')}${column(s, smart, 'smart')}</div>${foot}
-        <p class="fine">SAARTHI suggests each change when the ambulance is about 500 m from the signal; a light you turn green changes at once and stays green until it has crossed, then goes back to normal control. Fixed timers: nobody is asked and the lights run their timers. A junction policeman can wave an ambulance through if radioed in time; that is not modelled here.</p>`;
+        ${foot}
+        <p class="fine">SAARTHI turns each light on the route green for the ambulance when it is about 500 m away (or keeps it green if it already is) until it has crossed, then hands it back to normal control. In the control console (section 05) the controller approves each change. Fixed timers: nobody is asked and the lights run their timers. A junction policeman can wave an ambulance through if radioed in time; that is not modelled here.</p>`;
     }
+    slots(a);
     if (html !== lastAmb) {
       const tl = el.querySelector('.amb-tl ol'), atEnd = !tl || tl.scrollTop + tl.clientHeight >= tl.scrollHeight - 4;
       el.innerHTML = html; lastAmb = html;
@@ -610,12 +609,6 @@
   }
 
   // ------------------------------------------------------------------ inspector & log
-  function edgeJson(o) { // same layout as the edge message on deck slide 7
-    const lanes = o.lanes.map(l => `   ${JSON.stringify(l)}`).join(',\n');
-    return `{ "junction_id":"${o.junction_id}", "approach":"${o.approach}",\n  "lanes":[\n${lanes}],\n`
-      + `  "turning":${JSON.stringify(o.turning)},\n  "incident":${o.incident} }`;
-  }
-
   function updateInspector() {
     if (!fixed || !state.selected) return;
     const jf = fixed.nodes[state.selected], js = smart.nodes[state.selected];
@@ -626,8 +619,6 @@
       <td>${a.name}<span class="sub2">from ${a.approach} · fixed green ${a.plan}s</span></td>
       <td class="num">${cellQ(a)}</td>
       <td class="num">${cellQ(as[i])}</td></tr>`).join('');
-    $('#edge-name').textContent = `${js.id} · ${js.approaches[state.approach].name}`;
-    $('#edge-json').textContent = edgeJson(smart.edgeState(js, state.approach));
   }
 
   let lastLogKey = '';
@@ -672,10 +663,15 @@
 
   // ------------------------------------------------------------------ main loop
   // Only simulate while the lab is on screen, so the rest of the page stays smooth.
-  new IntersectionObserver(es => {
-    state.visible = es[es.length - 1].isIntersecting; // entries can arrive batched: the newest one counts
+  // ... or while its live analysis (section 04) is: those numbers come from this twin
+  const onScreen = { twin: false, analysis: false };
+  const visObs = new IntersectionObserver(es => {
+    for (const e of es) onScreen[e.target.id] = e.isIntersecting; // entries can arrive batched
+    state.visible = onScreen.twin || onScreen.analysis;
     if (state.visible) requestAnimationFrame(resizeAll);
-  }, { rootMargin: '200px' }).observe($('#twin'));
+  }, { rootMargin: '200px' });
+  visObs.observe($('#twin'));
+  if ($('#analysis')) visObs.observe($('#analysis'));
 
   let last = performance.now(), acc = 0, uiT = 0, chartT = 0;
   function frame(now) {
