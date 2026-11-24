@@ -1440,7 +1440,9 @@
             if (ks) {
               if (li !== 0 && veh.pos > ks.pos - 5) veh.kerbStop = null; // couldn't reach the kerb in time: skip it
               else if (li === 0) {
-                if (ks.until == null && ks.pos - veh.pos < 1.5 && veh.v < 0.3) ks.until = this.t + ks.dwell;
+                // 'at the stop' once within its own standstill gap: car-following never closes that gap to a stop line,
+                // so a fixed 1.5 m could leave an auto parked just short of its stop for good
+                if (ks.until == null && ks.pos - veh.pos < Math.max(1.5, veh.s0 + 1) && veh.v < 0.3) ks.until = this.t + ks.dwell;
                 if (ks.until != null && this.t >= ks.until) { veh.kerbStop = null; veh.curWait = 0; } // fare / passengers on board
                 else stopAt = Math.min(stopAt, ks.until != null ? veh.pos : ks.pos);
               }

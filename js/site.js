@@ -379,8 +379,8 @@
     const better = rows.filter(r => r.smart.avg < r.fixed.avg * 0.99).length;
     const worse = rows.filter(r => r.smart.avg > r.fixed.avg * 1.01).length;
     $('#mo-sum').innerHTML = `Over ${rows.length} working days on ${moName(moArea)}: `
-      + `<b>${saved >= 0 ? '≈ ' + Math.round(saved).toLocaleString('en-IN') + ' vehicle-hours saved' : '≈ ' + Math.round(-saved).toLocaleString('en-IN') + ' vehicle-hours lost'}</b> in the peak hour, `
-      + `<b>${Math.round(evSaved)} ambulance minutes saved</b> across ${rows.length} runs, `
+      + `<b>${saved >= 0 ? '≈ ' + Math.round(saved).toLocaleString('en-IN') + ' vehicle-hours saved' : '≈ ' + Math.round(-saved).toLocaleString('en-IN') + ' vehicle-hours lost'}</b> across the ${rows.length} peak hours, `
+      + `<b>${Math.round(evSaved)} ambulance minutes saved</b> (one run a day), `
       + `and SAARTHI was faster on <b>${better} of ${rows.length} days</b>${worse ? ` (slower on ${worse})` : ''}. `
       + `<span class="hint">Simulated with tools/month.js on ${M.generated}.</span>`;
     const series = (k, side) => rows.map(r => ({ t: r.day, v: r[side][k] == null ? null : r[side][k] / 60 }));

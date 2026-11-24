@@ -13,7 +13,7 @@ Open `index.html` in Chrome or Edge. No install is needed. An internet connectio
 | 01 Problem | The five failure modes from the brief and the "Noida already owns the hardware" insight |
 | 02 Approach | A live **graph view** of the corridor (edges coloured by occupancy, nodes sized by queue) and the closed loop: Sense → Predict → Decide & act → Enforce → Shape demand |
 | 03 Live twin | Fixed timers vs SAARTHI side by side on identical traffic: an **area picker** (the schematic Film City loop, or the real road network of the **Film City corridor**, **Connaught Place**, **Sector 62 Noida** or **Sector 34 Noida** from OpenStreetMap), event injection with an **event stopwatch**, KPIs, charts, demand forecast, junction inspector (each road's queue and light in both twins), and a decision log. Zoom with Ctrl + scroll or the + / − buttons, drag to pan |
-| 04 Analysis | The live twin measured as it runs (headline, rolling 15-min KPI table, 95th-percentile and vehicles-stopped charts, demand-vs-capacity forecast), and a full 08:00–10:30 morning peak **simulated in the browser on page load** (KPI cards and the 95th-percentile chart through the peak) |
+| 04 Analysis | The live twin measured as it runs (headline, rolling 15-min KPI table, 95th-percentile and vehicles-stopped charts, demand-vs-capacity forecast), and a full 08:00–10:30 morning peak **simulated in the browser on page load** (KPI cards and the 95th-percentile chart through the peak), and a **simulated month** for every area (precomputed, see below) |
 | 05 Control console | The **traffic controller's screen** (see *Control console* below), with two tabs. **Live**: one live SAARTHI twin of a real area; log a road closure, crash, ambulance or event crowd, review the advisory SAARTHI drafts, send it, see what it did; camera alerts and marshals. **Plan ahead**: the what-if planner for a protest, VIP movement or big event, and scheduling the recommended plan into the live twin |
 | 06 Results | The morning-peak run from Analysis scored against the deck's slide-11 targets, and the real-map comparison (measured offline) |
 | 07–08 | Architecture (six system layers, and a table of the SAARTHI layers: what each does, which system layer it runs in, its status in the twin), the phased rollout (Phase 1 "Twin & shadow" marked as live), and the closing call to action |
@@ -130,6 +130,8 @@ node tools/calibrate.js [startHour] [hours] [demandMult] [seed]
 node tools/calibrate.js 8 2.5 1 7      # morning peak A/B
 node tools/calibrate.js 8.5 1.75 1 7 cp --events   # Connaught Place, ambulance + illegal parking, event stopwatch
 node tools/capacity.js 1.4 7           # both twins overloaded to 140%: trips/h each can carry
+node tools/month.js fco                # simulated month: 22 working-day 08:30–09:30 peaks, Fixed vs SAARTHI
+node tools/month-pack.js               # bundle tools/month-out/*.json into js/month-data.js for the Analysis section
 node tools/whatif.js protest area=fco segment=vtm start=10 duration=1 disturbance
 node tools/whatif.js vip area=cp vipRoute=barakhamba-sansad convoys=2 holiday=0.15
 node tools/whatif.js event area=s62 start=17 duration=1.5 crowd=1000
@@ -167,6 +169,8 @@ node tools/whatif.js protest area=fc segment=north   # the schematic loop
 - **Queues beyond the map edge count like any other queue.** When an entry road fills to the edge, arriving vehicles wait off the map. That time counts as waiting for the first junction, and each time that queue moves again after standing 10 s counts as a fresh stop. Before this, fixed timers, which push about 3 min per trip off the map at the morning peak, looked better on wait and stops than they were.
 - **SAARTHI's results depend on whether the loop is just over or just under capacity.** Before two-wheeler lane sharing, the morning peak sat just over SAARTHI's capacity: cars waited through two short greens and its stops gain was only about −20%. Lane sharing adds about 6% capacity and tips SAARTHI back under, while fixed timers stay overloaded. Across five seeds SAARTHI now cuts stops by about 42% and trip time by about half. Field calibration (saturation flow, two-wheeler share) decides which side of that edge the real corridor is on, so treat the size of the gain with care. Signal-timing alternatives that didn't help, over five seeds: longer or "finish the queue" greens back queues up into the junction behind; holding a green for an approaching platoon jams the loop; choosing the next green to catch a platoon changed nothing measurable.
 - **Throughput: SAARTHI serves demand better, but it doesn't add road capacity.** With both twins fed the same overload (shaping off, trips finished per hour once saturated, three seeds), SAARTHI vs fixed is +5% at 100% demand, +1% at 120%, −3% at 140%, and +11% at 160%, where fixed timers start to gridlock (seeds vary from −3% to +28%). The roads cap throughput, and a well-tuned fixed plan pushes almost as much through when every approach is overloaded. SAARTHI's gain at the real peak comes from giving green where the demand is (the fixed plan starves the tidal DND approach), not from extra capacity. So the deck's +15–20% throughput target isn't supported by the twin. A fairer claim is "+5% more trips served at today's peak, holds flow when fixed timers gridlock". Reproduce with `node tools/capacity.js 1.4 7`.
+
+- **Simulated month.** The Analysis section's month view replays the 08:30–09:30 peak for 22 working days per area. Every day uses the same calibrated weekday demand; what changes is the random seed (who leaves when, vehicle mix, driver behaviour) and the incidents: an ambulance every day at a random time and illegal parking on about 4 days in 10. It shows how steady the gain is across ordinary days, not seasonal effects (festivals, rain, holidays), for which there is no data yet. Takes about 50 minutes for all five areas, run one at a time.
 - At extreme overload (about 120% evening demand) SAARTHI still wins on 95th-percentile trip time, but average wait and stops are slightly worse than fixed timers. This is worth tuning further in SUMO.
 
 ## Next steps
@@ -192,6 +196,8 @@ js/whatif.js        control console, Plan ahead tab: scenario form, map, results
 js/site.js          hero twin, live graph, closed-loop stepper, benchmark, nav/theme
 tools/calibrate.js  headless A/B runner (any area, optional event stopwatch)
 tools/capacity.js   headless capacity A/B (both twins overloaded, trips/h once saturated)
+tools/month.js      simulated month per area (22 peak hours; seed and incidents vary, demand doesn't)
+tools/month-pack.js bundles the month results into js/month-data.js
 tools/osm-import.js OpenStreetMap → twin network builder (raw data cached in tools/osm-cache/)
 tools/whatif.js     headless what-if runner
 tools/serve.js      local web server for the site (needed for the OpenStreetMap street map)
